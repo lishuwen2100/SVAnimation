@@ -854,7 +854,7 @@ export function DuckSubtitle() {
         </header>
 
           <section className="flex flex-wrap items-center gap-3 text-sm">
-            <label className="inline-flex cursor-pointer items-center gap-2 border border-neutral-700 px-4 py-2 hover:border-neutral-500">
+            <label className="inline-flex cursor-pointer items-center gap-2 border border-neutral-700 bg-neutral-900 px-4 py-2 text-neutral-100 hover:border-neutral-500 hover:bg-neutral-800">
               <span>导入 SRT</span>
               <input
                 type="file"
@@ -864,7 +864,7 @@ export function DuckSubtitle() {
               />
             </label>
 
-            <label className="inline-flex cursor-pointer items-center gap-2 border border-neutral-700 px-4 py-2 hover:border-neutral-500">
+            <label className="inline-flex cursor-pointer items-center gap-2 border border-neutral-700 bg-neutral-900 px-4 py-2 text-neutral-100 hover:border-neutral-500 hover:bg-neutral-800">
               <span>导入 MP3</span>
               <input
                 type="file"
@@ -954,21 +954,82 @@ export function DuckSubtitle() {
           </details>
 
           <details open className="border border-neutral-800 px-4 py-3 text-xs text-neutral-300">
-            <summary className="cursor-pointer select-none text-sm text-neutral-100">中心区域框选</summary>
-            <div className="mt-3 space-y-3">
-              <div>用鼠标在左侧播放器中拖拽框选中心区域</div>
-              <button
-                type="button"
-                className={`border px-3 py-1 ${isDrawMode ? "border-yellow-300 text-yellow-300" : "border-neutral-700 text-neutral-100"}`}
-                onClick={() => {
-                  setIsDrawMode((prev) => !prev);
-                  setDraftRect(null);
-                  dragStartRef.current = null;
-                }}
-              >
-                {isDrawMode ? "退出框选模式" : "进入框选模式"}
-              </button>
-              <label className="flex items-center gap-2">
+            <summary className="cursor-pointer select-none text-sm text-neutral-100">中心区域设置</summary>
+            <div className="mt-3 space-y-4">
+              <div>
+                <div className="mb-2 text-neutral-100">鼠标框选</div>
+                <div className="mb-2 text-neutral-400">在左侧播放器中拖拽框选中心区域</div>
+                <button
+                  type="button"
+                  className={`border px-3 py-1 ${isDrawMode ? "border-yellow-300 text-yellow-300" : "border-neutral-700 text-neutral-100"}`}
+                  onClick={() => {
+                    setIsDrawMode((prev) => !prev);
+                    setDraftRect(null);
+                    dragStartRef.current = null;
+                  }}
+                >
+                  {isDrawMode ? "退出框选模式" : "进入框选模式"}
+                </button>
+              </div>
+
+              <div className="border-t border-neutral-800 pt-3">
+                <div className="mb-2 text-neutral-100">精准数值 (%)</div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="space-y-1">
+                    <div>X 位置</div>
+                    <input
+                      type="number"
+                      min={0}
+                      max={90}
+                      step={1}
+                      value={Math.round(centerRegion.x * 100)}
+                      onChange={(event) => updateCenterRegion("x", Number(event.target.value) / 100)}
+                      className="w-full border border-neutral-700 bg-neutral-900 px-2 py-1 text-neutral-100"
+                    />
+                  </label>
+
+                  <label className="space-y-1">
+                    <div>Y 位置</div>
+                    <input
+                      type="number"
+                      min={0}
+                      max={90}
+                      step={1}
+                      value={Math.round(centerRegion.y * 100)}
+                      onChange={(event) => updateCenterRegion("y", Number(event.target.value) / 100)}
+                      className="w-full border border-neutral-700 bg-neutral-900 px-2 py-1 text-neutral-100"
+                    />
+                  </label>
+
+                  <label className="space-y-1">
+                    <div>宽度</div>
+                    <input
+                      type="number"
+                      min={10}
+                      max={90}
+                      step={1}
+                      value={Math.round(centerRegion.width * 100)}
+                      onChange={(event) => updateCenterRegion("width", Number(event.target.value) / 100)}
+                      className="w-full border border-neutral-700 bg-neutral-900 px-2 py-1 text-neutral-100"
+                    />
+                  </label>
+
+                  <label className="space-y-1">
+                    <div>高度</div>
+                    <input
+                      type="number"
+                      min={10}
+                      max={90}
+                      step={1}
+                      value={Math.round(centerRegion.height * 100)}
+                      onChange={(event) => updateCenterRegion("height", Number(event.target.value) / 100)}
+                      className="w-full border border-neutral-700 bg-neutral-900 px-2 py-1 text-neutral-100"
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <label className="flex items-center gap-2 border-t border-neutral-800 pt-3">
                 <input
                   type="checkbox"
                   checked={centerRegion.show}
@@ -1000,63 +1061,6 @@ export function DuckSubtitle() {
                   </label>
                 ))}
               </div>
-            </div>
-          </details>
-
-          <details className="border border-neutral-800 px-4 py-3 text-xs text-neutral-300">
-            <summary className="cursor-pointer select-none text-sm text-neutral-100">中心区域精准数值</summary>
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              <label className="space-y-1">
-                <div>中心区域 X(%)</div>
-                <input
-                  type="number"
-                  min={0}
-                  max={90}
-                  step={1}
-                  value={Math.round(centerRegion.x * 100)}
-                  onChange={(event) => updateCenterRegion("x", Number(event.target.value) / 100)}
-                  className="w-full border border-neutral-700 bg-neutral-900 px-2 py-1"
-                />
-              </label>
-
-              <label className="space-y-1">
-                <div>中心区域 Y(%)</div>
-                <input
-                  type="number"
-                  min={0}
-                  max={90}
-                  step={1}
-                  value={Math.round(centerRegion.y * 100)}
-                  onChange={(event) => updateCenterRegion("y", Number(event.target.value) / 100)}
-                  className="w-full border border-neutral-700 bg-neutral-900 px-2 py-1"
-                />
-              </label>
-
-              <label className="space-y-1">
-                <div>区域宽度(%)</div>
-                <input
-                  type="number"
-                  min={10}
-                  max={90}
-                  step={1}
-                  value={Math.round(centerRegion.width * 100)}
-                  onChange={(event) => updateCenterRegion("width", Number(event.target.value) / 100)}
-                  className="w-full border border-neutral-700 bg-neutral-900 px-2 py-1"
-                />
-              </label>
-
-              <label className="space-y-1">
-                <div>区域高度(%)</div>
-                <input
-                  type="number"
-                  min={10}
-                  max={90}
-                  step={1}
-                  value={Math.round(centerRegion.height * 100)}
-                  onChange={(event) => updateCenterRegion("height", Number(event.target.value) / 100)}
-                  className="w-full border border-neutral-700 bg-neutral-900 px-2 py-1"
-                />
-              </label>
             </div>
           </details>
         </aside>
