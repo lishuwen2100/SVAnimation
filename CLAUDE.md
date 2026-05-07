@@ -4,9 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-A Chinese subtitle animation player that uses Remotion to create "Typemonkey/倒鸭子" style animations. Subtitles appear one by one, attach to each other, and rotate 90° left every 3 lines, with automatic centering constraints.
+**SVAnimation** is a short video effects assistant toolkit built with Remotion. It provides multiple special effects modules for video creators.
 
 **Tech Stack:** React 19 + Vite 7 + Tailwind CSS 4 + Remotion 4 + TypeScript 5
+
+### Current Modules
+
+1. **倒鸭子字幕 (Duck Subtitle)**: Chinese subtitle animation player that uses Remotion to create "Typemonkey" style animations. Subtitles appear one by one, attach to each other, and rotate 90° left every 3 lines, with automatic centering constraints.
 
 ## Development Commands
 
@@ -23,14 +27,32 @@ npm run preview
 
 ## Architecture & Key Concepts
 
-### Single-File Structure
+### Modular Structure
 
-The entire application logic lives in `src/App.tsx` (~1070 lines). This is intentional for this visualization tool:
+- `src/App.tsx`: Main application hub that displays module cards and handles navigation
+- `src/modules/`: Directory containing all effect modules
+  - `DuckSubtitle.tsx`: Duck subtitle animation module (~1060 lines)
+- Each module is a self-contained component that can be navigated to from the main interface
+
+### Module Navigation Pattern
+
+The App component manages navigation state with `currentModule` state:
+- `"home"`: Shows the main module selection interface
+- `"duck-subtitle"`: Shows the duck subtitle module with a back button header
+
+When adding new modules:
+1. Create new module file in `src/modules/`
+2. Add module card entry to `modules` array in `App.tsx`
+3. Add navigation case in App component's render logic
+
+### Duck Subtitle Module Architecture
+
+The duck subtitle module (`src/modules/DuckSubtitle.tsx`) contains:
 
 - **SubtitleComposition**: Remotion component that renders the animated subtitles
-- **App**: Main React component with UI controls and Remotion Player
+- **DuckSubtitle**: Main React component with UI controls and Remotion Player
 
-### Core Animation System
+### Duck Subtitle Animation System
 
 The animation follows a strict geometric algorithm:
 
@@ -72,7 +94,13 @@ Example: `import { cn } from '@/utils/cn'`
 
 ## State Management
 
-All state lives in the App component with React hooks:
+### Main App State
+
+- `currentModule`: Controls which module or home page is displayed
+
+### Duck Subtitle Module State
+
+All duck subtitle state lives in the DuckSubtitle component with React hooks:
 
 - `srtText`: Raw SRT content (default: demo Chinese text)
 - `audioSrc`: Object URL for uploaded MP3
@@ -109,21 +137,30 @@ Key constraints when modifying this codebase:
 
 ## Common Modifications
 
-### Adding a New Enter Animation
+### Adding a New Effect Module
+
+1. Create new module file in `src/modules/YourModule.tsx`
+2. Export a named component (e.g., `export function YourModule()`)
+3. Add import to `src/App.tsx`: `import { YourModule } from "./modules/YourModule"`
+4. Add module card to `modules` array with unique `id`, `title`, `description`, `icon`, and `color`
+5. Add `ModuleId` type entry for the new module
+6. Add navigation case in App component's render logic
+
+### Duck Subtitle: Adding a New Enter Animation
 
 1. Add new animation name to `EnterAnimationName` type
 2. Add option to `enterAnimationOptions[]` array
 3. Implement transform logic in `getEnterTransform()` switch statement
 4. Use Remotion's `interpolate()` and `spring()` for smooth easing
 
-### Adjusting Timing
+### Duck Subtitle: Adjusting Timing
 
 - Change `ROTATE_DURATION_FRAMES` for faster/slower rotations
 - Modify `SHIFT_DURATION_FRAMES` for center constraint speed
 - Adjust `ROTATE_FADE_PHASE` to change fade/rotate overlap timing
 - Update `GROUP_SIZE` to change how many subtitles per rotation (affects entire layout system)
 
-### Layout Algorithm
+### Duck Subtitle: Layout Algorithm
 
 The `buildLayouts()` function pre-calculates all positions. To modify attachment behavior:
 - First group: seeded random position near center
