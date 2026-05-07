@@ -614,14 +614,26 @@ const SubtitleComposition = ({
 
       {centerRegion.show ? (
         <div
-          className="absolute border-2 border-yellow-300/80"
+          className="absolute border-2 border-dashed border-yellow-300/80 pointer-events-none"
           style={{
             left: centerRect.left,
             top: centerRect.top,
             width: centerRect.width,
             height: centerRect.height,
           }}
-        />
+        >
+          <div className="absolute left-2 top-2 rounded bg-yellow-300/20 px-2 py-1 backdrop-blur-sm">
+            <div className="text-xs font-bold text-yellow-300">中心区域</div>
+            <div className="text-[10px] text-yellow-200/80">
+              {Math.round(centerRegion.width * 100)}% × {Math.round(centerRegion.height * 100)}%
+            </div>
+          </div>
+          <div className="absolute right-2 bottom-2 rounded bg-yellow-300/20 px-2 py-1 backdrop-blur-sm">
+            <div className="text-[10px] text-yellow-200/80">
+              X: {Math.round(centerRegion.x * 100)}% | Y: {Math.round(centerRegion.y * 100)}%
+            </div>
+          </div>
+        </div>
       ) : null}
 
       <div

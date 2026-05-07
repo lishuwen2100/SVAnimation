@@ -1,27 +1,59 @@
-# 倒鸭子字幕播放器设计说明
+# SVAnimation 设计文档
 
-## 1. 项目目标
-- 使用 Remotion Player 预览字幕动画。
-- 支持导入 SRT 字幕与 MP3 音频。
-- 以中文整句为单位渲染字幕，遵循“倒鸭子/Typemonkey”风格：贴合、分组、旋转、回中。
+## 项目概述
 
-## 2. 技术与结构
-- 技术栈: React + Vite + Tailwind CSS + Remotion。
-- 入口组件: `src/App.tsx`。
-- 文档: `DESIGN.md`。
+**SVAnimation** 是一个基于 Remotion 的短视频特效助手工具集，采用模块化架构，每个特效为独立模块。
 
-## 3. 页面布局
-- 左侧主区:
-  - 标题与说明。
-  - SRT / MP3 导入按钮，恢复演示字幕按钮，字幕数量与时长信息。
-  - Remotion Player 播放器。
-- 右侧配置区:
-  - 每个功能以折叠模块（`details`）组织，按需展开配置。
-  - 当前模块:
-    - 输出分辨率
-    - 中心区域框选
-    - 字幕进入动画
-    - 中心区域精准数值
+**技术栈**：React 19 + Vite 7 + Tailwind CSS 4 + Remotion 4 + TypeScript 5
+
+## 架构设计
+
+### 模块化结构
+
+```
+src/
+├── App.tsx              # 主界面（模块选择和导航）
+├── modules/             # 特效模块目录
+│   └── DuckSubtitle.tsx # 倒鸭子字幕模块
+├── utils/               # 工具函数
+└── main.tsx             # 应用入口
+```
+
+### 导航系统
+
+主应用使用状态管理切换视图：
+- `currentModule === “home”`: 显示模块选择卡片
+- `currentModule === “duck-subtitle”`: 显示倒鸭子模块
+- 每个模块页面顶部有返回按钮
+
+---
+
+## 倒鸭子字幕模块 (Duck Subtitle)
+
+### 设计目标
+- 使用 Remotion Player 预览字幕动画
+- 支持导入 SRT 字幕与 MP3 音频
+- 以中文整句为单位渲染字幕，遵循”倒鸭子/Typemonkey”风格：贴合、分组、旋转、回中
+
+### 界面布局
+
+**顶部操作栏**：
+- 导入 SRT / 导入 MP3（渐变色按钮 + 图标）
+- 恢复演示字幕（橙色渐变）
+- 框选中心区域（黄色高亮模式）
+- 显示/隐藏中心区域框
+
+**信息状态栏**：
+- 字幕类型、音频状态、条数、时长、分辨率（图标卡片）
+
+**主预览区**：
+- Remotion Player 播放器
+- 可交互的中心区域框选层（点线边框 + 数值标签）
+
+**右侧配置面板**：
+- 输出分辨率（5种预设，卡片式选择）
+- 中心区域设置（精准数值输入：X/Y/宽/高）
+- 字幕进入动画（5种动画，可多选）
 
 ## 4. 输入与时间轴
 - SRT 解析:
@@ -91,15 +123,48 @@
   - Player 展示纵横比
   - 字幕布局计算与中心区域约束坐标系
 
-## 11. 关键状态
-- 媒体与字幕:
-  - `srtText`
-  - `audioSrc`
-  - `audioDuration`
-  - `cues`
-- 画布与控制:
-  - `resolutionId`
-  - `centerRegion`
-  - `isDrawMode`
-  - `draftRect`
-  - `selectedAnimations`
+## 11. 核心常量
+
+```typescript
+FPS = 30                      // 帧率
+GROUP_SIZE = 3                // 每组字幕数
+ROTATE_DURATION_FRAMES = 16   // 旋转持续帧数 (~0.53秒)
+SHIFT_DURATION_FRAMES = 12    // 平移持续帧数 (~0.4秒)
+FONT_SIZE = 72                // 字体大小
+BOX_HEIGHT = 86               // 字幕盒高度
+ROTATE_FADE_PHASE = 0.45      // 淡出阶段（旋转的45%时开始）
+```
+
+## 12. 关键状态
+
+**媒体与字幕**：
+- `srtText`: 原始 SRT 文本
+- `audioSrc`: 音频对象 URL
+- `audioDuration`: 音频时长（秒）
+- `cues`: 解析后的字幕数组（含帧时间）
+
+**画布与控制**：
+- `resolutionId`: 分辨率选择
+- `centerRegion`: { x, y, width, height, show }
+- `isDrawMode`: 框选模式开关
+- `draftRect`: 拖拽临时矩形
+- `selectedAnimations`: 已选动画数组
+
+## 13. 视觉设计规范
+
+**配色方案**：
+- 主背景：`bg-neutral-950`
+- 卡片背景：`bg-neutral-900/50 backdrop-blur-sm`
+- 边框：`border-neutral-800`
+- 按钮渐变：
+  - SRT: purple-600 → purple-500
+  - MP3: pink-600 → purple-600
+  - 恢复: amber-500 → orange-500
+  - 框选: yellow-500 → amber-500
+- 模块图标：cyan(分辨率) / yellow(中心区域) / purple(动画)
+
+**交互效果**：
+- 悬停缩放：`hover:scale-[1.02]`
+- 点击缩放：`active:scale-[0.98]`
+- 阴影发光：`hover:shadow-{color}-500/50`
+- 焦点高亮：输入框黄色边框
