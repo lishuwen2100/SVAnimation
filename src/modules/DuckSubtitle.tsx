@@ -847,45 +847,112 @@ export function DuckSubtitle() {
   return (
     <div className="mx-auto grid w-full max-w-[1600px] gap-6 px-6 py-8 lg:grid-cols-[minmax(0,1fr)_380px]">
       <section className="space-y-4">
-        <header className="space-y-2">
-          <p className="text-sm text-neutral-400">
-            上传 SRT 和 MP3 后，使用 Remotion Player 预览整句字幕贴合和每 3 句左转 90 度的效果。
-          </p>
-        </header>
+        <div className="flex flex-wrap items-center gap-3">
+          <label className="group relative inline-flex cursor-pointer items-center gap-2.5 overflow-hidden rounded-lg bg-gradient-to-r from-purple-600 to-purple-500 px-5 py-2.5 font-medium text-white shadow-lg transition-all hover:shadow-purple-500/50 hover:scale-[1.02] active:scale-[0.98]">
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <span className="text-sm font-semibold">导入 SRT</span>
+            <input
+              type="file"
+              accept=".srt,text/plain"
+              className="hidden"
+              onChange={(event) => handleSrtUpload(event.target.files?.[0] ?? null)}
+            />
+          </label>
 
-          <section className="flex flex-wrap items-center gap-3 text-sm">
-            <label className="inline-flex cursor-pointer items-center gap-2 border border-neutral-700 bg-neutral-900 px-4 py-2 text-neutral-100 hover:border-neutral-500 hover:bg-neutral-800">
-              <span>导入 SRT</span>
-              <input
-                type="file"
-                accept=".srt,text/plain"
-                className="hidden"
-                onChange={(event) => handleSrtUpload(event.target.files?.[0] ?? null)}
-              />
-            </label>
+          <label className="group relative inline-flex cursor-pointer items-center gap-2.5 overflow-hidden rounded-lg bg-gradient-to-r from-pink-600 to-purple-600 px-5 py-2.5 font-medium text-white shadow-lg transition-all hover:shadow-pink-500/50 hover:scale-[1.02] active:scale-[0.98]">
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+            </svg>
+            <span className="text-sm font-semibold">导入 MP3</span>
+            <input
+              type="file"
+              accept="audio/mpeg,.mp3"
+              className="hidden"
+              onChange={(event) => handleAudioUpload(event.target.files?.[0] ?? null)}
+            />
+          </label>
 
-            <label className="inline-flex cursor-pointer items-center gap-2 border border-neutral-700 bg-neutral-900 px-4 py-2 text-neutral-100 hover:border-neutral-500 hover:bg-neutral-800">
-              <span>导入 MP3</span>
-              <input
-                type="file"
-                accept="audio/mpeg,.mp3"
-                className="hidden"
-                onChange={(event) => handleAudioUpload(event.target.files?.[0] ?? null)}
-              />
-            </label>
+          <button
+            type="button"
+            className="inline-flex items-center gap-2.5 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 px-5 py-2.5 font-medium text-white shadow-lg transition-all hover:shadow-amber-500/50 hover:scale-[1.02] active:scale-[0.98]"
+            onClick={() => setSrtText(demoSrt)}
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            <span className="text-sm font-semibold">恢复演示</span>
+          </button>
 
-            <button
-              type="button"
-              className="border border-amber-500 px-4 py-2 text-amber-400 hover:bg-amber-500/10"
-              onClick={() => setSrtText(demoSrt)}
-            >
-              恢复中文演示字幕
-            </button>
+          <button
+            type="button"
+            className={`inline-flex items-center gap-2.5 rounded-lg px-5 py-2.5 font-medium shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98] ${
+              isDrawMode
+                ? "bg-gradient-to-r from-yellow-500 to-amber-500 text-white hover:shadow-yellow-500/50"
+                : "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
+            }`}
+            onClick={() => {
+              setIsDrawMode((prev) => !prev);
+              setDraftRect(null);
+              dragStartRef.current = null;
+            }}
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+            </svg>
+            <span className="text-sm font-semibold">{isDrawMode ? "退出框选" : "框选中心区域"}</span>
+          </button>
 
-            <div className="text-neutral-400">
-              字幕 {cues.length} 条 | 时长 {(durationInFrames / FPS).toFixed(1)} 秒
-            </div>
-          </section>
+          <button
+            type="button"
+            className="inline-flex items-center gap-2.5 rounded-lg bg-neutral-800 px-5 py-2.5 font-medium text-neutral-300 shadow-lg transition-all hover:bg-neutral-700 hover:scale-[1.02] active:scale-[0.98]"
+            onClick={() => setCenterRegion((prev) => ({ ...prev, show: !prev.show }))}
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            <span className="text-sm font-semibold">{centerRegion.show ? "隐藏框" : "显示框"}</span>
+          </button>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3 text-sm">
+          <div className="inline-flex items-center gap-2 rounded-md bg-neutral-800/50 px-3 py-1.5 text-neutral-300">
+            <svg className="h-4 w-4 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <span className="font-medium">{srtText === demoSrt ? "演示字幕" : "自定义字幕"}</span>
+          </div>
+
+          <div className="inline-flex items-center gap-2 rounded-md bg-neutral-800/50 px-3 py-1.5 text-neutral-300">
+            <svg className="h-4 w-4 text-pink-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+            </svg>
+            <span className="font-medium">{audioSrc ? "有音频" : "无音频"}</span>
+          </div>
+
+          <div className="inline-flex items-center gap-2 rounded-md bg-neutral-800/50 px-3 py-1.5 text-neutral-300">
+            <svg className="h-4 w-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
+            <span className="font-medium">{cues.length} 条</span>
+          </div>
+
+          <div className="inline-flex items-center gap-2 rounded-md bg-neutral-800/50 px-3 py-1.5 text-neutral-300">
+            <svg className="h-4 w-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span className="font-medium">{(durationInFrames / FPS).toFixed(1)} 秒</span>
+          </div>
+
+          <div className="inline-flex items-center gap-2 rounded-md bg-neutral-800/50 px-3 py-1.5 text-neutral-300">
+            <svg className="h-4 w-4 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+            <span className="font-medium">{selectedResolution.width}x{selectedResolution.height}</span>
+          </div>
+        </div>
 
           <main className="relative overflow-hidden border border-neutral-800">
             <Player
@@ -936,130 +1003,143 @@ export function DuckSubtitle() {
         </section>
 
         <aside className="space-y-3">
-          <details open className="border border-neutral-800 px-4 py-3 text-xs text-neutral-300">
-            <summary className="cursor-pointer select-none text-sm text-neutral-100">输出分辨率</summary>
-            <div className="mt-3 grid gap-2">
-              {resolutionOptions.map((option) => (
-                <label key={option.id} className="inline-flex items-center gap-2">
-                  <input
-                    type="radio"
-                    name="resolution"
-                    checked={resolutionId === option.id}
-                    onChange={() => setResolutionId(option.id)}
-                  />
-                  <span>{option.label}</span>
-                </label>
-              ))}
-            </div>
-          </details>
-
-          <details open className="border border-neutral-800 px-4 py-3 text-xs text-neutral-300">
-            <summary className="cursor-pointer select-none text-sm text-neutral-100">中心区域设置</summary>
-            <div className="mt-3 space-y-4">
-              <div>
-                <div className="mb-2 text-neutral-100">鼠标框选</div>
-                <div className="mb-2 text-neutral-400">在左侧播放器中拖拽框选中心区域</div>
-                <button
-                  type="button"
-                  className={`border px-3 py-1 ${isDrawMode ? "border-yellow-300 text-yellow-300" : "border-neutral-700 text-neutral-100"}`}
-                  onClick={() => {
-                    setIsDrawMode((prev) => !prev);
-                    setDraftRect(null);
-                    dragStartRef.current = null;
-                  }}
-                >
-                  {isDrawMode ? "退出框选模式" : "进入框选模式"}
-                </button>
+          <details open className="group overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900/50 backdrop-blur-sm">
+            <summary className="cursor-pointer select-none px-4 py-3 text-sm font-semibold text-neutral-100 transition-colors hover:bg-neutral-800/50">
+              <div className="flex items-center gap-2">
+                <svg className="h-4 w-4 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                <span>输出分辨率</span>
               </div>
-
-              <div className="border-t border-neutral-800 pt-3">
-                <div className="mb-2 text-neutral-100">精准数值 (%)</div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <label className="space-y-1">
-                    <div>X 位置</div>
-                    <input
-                      type="number"
-                      min={0}
-                      max={90}
-                      step={1}
-                      value={Math.round(centerRegion.x * 100)}
-                      onChange={(event) => updateCenterRegion("x", Number(event.target.value) / 100)}
-                      className="w-full border border-neutral-700 bg-neutral-900 px-2 py-1 text-neutral-100"
-                    />
-                  </label>
-
-                  <label className="space-y-1">
-                    <div>Y 位置</div>
-                    <input
-                      type="number"
-                      min={0}
-                      max={90}
-                      step={1}
-                      value={Math.round(centerRegion.y * 100)}
-                      onChange={(event) => updateCenterRegion("y", Number(event.target.value) / 100)}
-                      className="w-full border border-neutral-700 bg-neutral-900 px-2 py-1 text-neutral-100"
-                    />
-                  </label>
-
-                  <label className="space-y-1">
-                    <div>宽度</div>
-                    <input
-                      type="number"
-                      min={10}
-                      max={90}
-                      step={1}
-                      value={Math.round(centerRegion.width * 100)}
-                      onChange={(event) => updateCenterRegion("width", Number(event.target.value) / 100)}
-                      className="w-full border border-neutral-700 bg-neutral-900 px-2 py-1 text-neutral-100"
-                    />
-                  </label>
-
-                  <label className="space-y-1">
-                    <div>高度</div>
-                    <input
-                      type="number"
-                      min={10}
-                      max={90}
-                      step={1}
-                      value={Math.round(centerRegion.height * 100)}
-                      onChange={(event) => updateCenterRegion("height", Number(event.target.value) / 100)}
-                      className="w-full border border-neutral-700 bg-neutral-900 px-2 py-1 text-neutral-100"
-                    />
-                  </label>
-                </div>
-              </div>
-
-              <label className="flex items-center gap-2 border-t border-neutral-800 pt-3">
-                <input
-                  type="checkbox"
-                  checked={centerRegion.show}
-                  onChange={(event) =>
-                    setCenterRegion((prev) => ({
-                      ...prev,
-                      show: event.target.checked,
-                    }))
-                  }
-                />
-                <span>显示中心区域(黄框)</span>
-              </label>
-            </div>
-          </details>
-
-          <details className="border border-neutral-800 px-4 py-3 text-xs text-neutral-300">
-            <summary className="cursor-pointer select-none text-sm text-neutral-100">字幕进入动画</summary>
-            <div className="mt-3 space-y-2">
-              <div className="text-neutral-100">多选后随机，未勾选则使用默认进入动画</div>
+            </summary>
+            <div className="border-t border-neutral-800 px-4 py-3">
               <div className="grid gap-2">
-                {enterAnimationOptions.map((option) => (
-                  <label key={option.id} className="inline-flex items-center gap-2">
+                {resolutionOptions.map((option) => (
+                  <label
+                    key={option.id}
+                    className={`flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2 transition-all ${
+                      resolutionId === option.id
+                        ? "border-cyan-500 bg-cyan-500/10 text-cyan-300"
+                        : "border-neutral-700 text-neutral-300 hover:border-neutral-600 hover:bg-neutral-800/50"
+                    }`}
+                  >
                     <input
-                      type="checkbox"
-                      checked={selectedAnimations.includes(option.id)}
-                      onChange={(event) => toggleAnimation(option.id, event.target.checked)}
+                      type="radio"
+                      name="resolution"
+                      checked={resolutionId === option.id}
+                      onChange={() => setResolutionId(option.id)}
+                      className="text-cyan-500"
                     />
-                    <span>{option.label}</span>
+                    <span className="text-sm font-medium">{option.label}</span>
                   </label>
                 ))}
+              </div>
+            </div>
+          </details>
+
+          <details open className="group overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900/50 backdrop-blur-sm">
+            <summary className="cursor-pointer select-none px-4 py-3 text-sm font-semibold text-neutral-100 transition-colors hover:bg-neutral-800/50">
+              <div className="flex items-center gap-2">
+                <svg className="h-4 w-4 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                </svg>
+                <span>中心区域设置</span>
+              </div>
+            </summary>
+            <div className="border-t border-neutral-800 px-4 py-3">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <div className="text-xs font-semibold uppercase tracking-wider text-neutral-400">精准数值 (%)</div>
+                  <div className="grid gap-2.5 sm:grid-cols-2">
+                    <label className="space-y-1.5">
+                      <div className="text-xs font-medium text-neutral-300">X 位置</div>
+                      <input
+                        type="number"
+                        min={0}
+                        max={90}
+                        step={1}
+                        value={Math.round(centerRegion.x * 100)}
+                        onChange={(event) => updateCenterRegion("x", Number(event.target.value) / 100)}
+                        className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-3 py-1.5 text-sm text-neutral-100 focus:border-yellow-500 focus:outline-none focus:ring-1 focus:ring-yellow-500"
+                      />
+                    </label>
+
+                    <label className="space-y-1.5">
+                      <div className="text-xs font-medium text-neutral-300">Y 位置</div>
+                      <input
+                        type="number"
+                        min={0}
+                        max={90}
+                        step={1}
+                        value={Math.round(centerRegion.y * 100)}
+                        onChange={(event) => updateCenterRegion("y", Number(event.target.value) / 100)}
+                        className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-3 py-1.5 text-sm text-neutral-100 focus:border-yellow-500 focus:outline-none focus:ring-1 focus:ring-yellow-500"
+                      />
+                    </label>
+
+                    <label className="space-y-1.5">
+                      <div className="text-xs font-medium text-neutral-300">宽度</div>
+                      <input
+                        type="number"
+                        min={10}
+                        max={90}
+                        step={1}
+                        value={Math.round(centerRegion.width * 100)}
+                        onChange={(event) => updateCenterRegion("width", Number(event.target.value) / 100)}
+                        className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-3 py-1.5 text-sm text-neutral-100 focus:border-yellow-500 focus:outline-none focus:ring-1 focus:ring-yellow-500"
+                      />
+                    </label>
+
+                    <label className="space-y-1.5">
+                      <div className="text-xs font-medium text-neutral-300">高度</div>
+                      <input
+                        type="number"
+                        min={10}
+                        max={90}
+                        step={1}
+                        value={Math.round(centerRegion.height * 100)}
+                        onChange={(event) => updateCenterRegion("height", Number(event.target.value) / 100)}
+                        className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-3 py-1.5 text-sm text-neutral-100 focus:border-yellow-500 focus:outline-none focus:ring-1 focus:ring-yellow-500"
+                      />
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </details>
+
+          <details className="group overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900/50 backdrop-blur-sm">
+            <summary className="cursor-pointer select-none px-4 py-3 text-sm font-semibold text-neutral-100 transition-colors hover:bg-neutral-800/50">
+              <div className="flex items-center gap-2">
+                <svg className="h-4 w-4 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
+                </svg>
+                <span>字幕进入动画</span>
+              </div>
+            </summary>
+            <div className="border-t border-neutral-800 px-4 py-3">
+              <div className="space-y-3">
+                <div className="text-xs text-neutral-400">多选后随机，未勾选则使用默认进入动画</div>
+                <div className="grid gap-2">
+                  {enterAnimationOptions.map((option) => (
+                    <label
+                      key={option.id}
+                      className={`flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2 transition-all ${
+                        selectedAnimations.includes(option.id)
+                          ? "border-purple-500 bg-purple-500/10 text-purple-300"
+                          : "border-neutral-700 text-neutral-300 hover:border-neutral-600 hover:bg-neutral-800/50"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedAnimations.includes(option.id)}
+                        onChange={(event) => toggleAnimation(option.id, event.target.checked)}
+                        className="text-purple-500"
+                      />
+                      <span className="text-sm font-medium">{option.label}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
             </div>
           </details>
