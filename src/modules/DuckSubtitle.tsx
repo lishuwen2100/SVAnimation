@@ -20,6 +20,7 @@ type SubtitleCue = {
   fontFamily?: string;
   fontSize?: number;
   animation?: EnterAnimationName;
+  customPosition?: Point | null;
 };
 
 type Point = {
@@ -93,6 +94,8 @@ type StylePreset = {
   fontFamily?: string;
   fontSize?: number;
   animation?: EnterAnimationName;
+  positionMode?: "random" | "manual";
+  manualPosition?: Point | null;
   description: string;
 };
 
@@ -100,6 +103,7 @@ type SubtitleStyle = {
   fontFamily?: string;
   fontSize?: number;
   animation?: EnterAnimationName;
+  customPosition?: Point | null;
 };
 
 const FPS = 30;
@@ -127,28 +131,41 @@ const stylePresets: StylePreset[] = [
     label: "标准",
     fontSize: 72,
     fontFamily: "ui-sans-serif, system-ui, sans-serif",
-    description: "默认样式",
+    positionMode: "random",
+    description: "默认样式 + 随机位置",
   },
   {
     id: "large-bold",
     label: "大标题",
     fontSize: 96,
     fontFamily: "SimHei, sans-serif",
-    description: "加大加粗",
+    positionMode: "random",
+    description: "加大加粗 + 随机位置",
   },
   {
     id: "small-subtitle",
     label: "小字幕",
     fontSize: 54,
     fontFamily: "ui-sans-serif, system-ui, sans-serif",
-    description: "紧凑显示",
+    positionMode: "random",
+    description: "紧凑显示 + 随机位置",
   },
   {
     id: "elegant",
     label: "优雅",
     fontSize: 68,
     fontFamily: "KaiTi, serif",
-    description: "楷体风格",
+    positionMode: "random",
+    description: "楷体风格 + 随机位置",
+  },
+  {
+    id: "center-fixed",
+    label: "中心固定",
+    fontSize: 72,
+    fontFamily: "ui-sans-serif, system-ui, sans-serif",
+    positionMode: "manual",
+    manualPosition: null,
+    description: "居中固定位置",
   },
 ];
 
@@ -161,11 +178,15 @@ const enterAnimationOptions: EnterAnimationOption[] = [
 ];
 
 const resolutionOptions: ResolutionOption[] = [
-  { id: "1080p", label: "1920 x 1080 (Full HD)", width: 1920, height: 1080 },
   { id: "720p", label: "1280 x 720 (HD)", width: 1280, height: 720 },
-  { id: "square", label: "1080 x 1080 (Square)", width: 1080, height: 1080 },
-  { id: "portrait", label: "1080 x 1920 (Vertical)", width: 1080, height: 1920 },
+  { id: "1080p", label: "1920 x 1080 (Full HD)", width: 1920, height: 1080 },
   { id: "2k", label: "2560 x 1440 (2K)", width: 2560, height: 1440 },
+  { id: "4k", label: "3840 x 2160 (4K)", width: 3840, height: 2160 },
+  { id: "square-720", label: "720 x 720 (Square)", width: 720, height: 720 },
+  { id: "square-1080", label: "1080 x 1080 (Square)", width: 1080, height: 1080 },
+  { id: "portrait-720", label: "720 x 1280 (Vertical HD)", width: 720, height: 1280 },
+  { id: "portrait-1080", label: "1080 x 1920 (Vertical Full HD)", width: 1080, height: 1920 },
+  { id: "ultrawide", label: "2560 x 1080 (Ultrawide)", width: 2560, height: 1080 },
 ];
 
 const demoSrt = `1
@@ -325,8 +346,12 @@ const buildLayouts = (
       let targetX: number;
       let targetY: number;
 
-      if (manualPos) {
-        // 手动模式: 所有字幕都使用相同的手动选择位置
+      // 优先使用单条字幕的自定义位置
+      if (cues[cueIndex].customPosition) {
+        targetX = cues[cueIndex].customPosition!.x;
+        targetY = cues[cueIndex].customPosition!.y;
+      } else if (manualPos) {
+        // 全局手动模式: 所有字幕都使用相同的手动选择位置
         targetX = manualPos.x;
         targetY = manualPos.y;
       } else if (centerRect) {
@@ -851,6 +876,7 @@ export function DuckSubtitle() {
   const [expandedCueId, setExpandedCueId] = useState<number | null>(null);
   const [positionMode, setPositionMode] = useState<"random" | "manual">("random");
   const [isSelectingPosition, setIsSelectingPosition] = useState(false);
+  const [selectingCueId, setSelectingCueId] = useState<number | null>(null);
 
   const selectedResolution =
     resolutionOptions.find((option) => option.id === resolutionId) ?? {
@@ -867,6 +893,7 @@ export function DuckSubtitle() {
       fontFamily: subtitleStyles[cue.id]?.fontFamily,
       fontSize: subtitleStyles[cue.id]?.fontSize,
       animation: subtitleStyles[cue.id]?.animation,
+      customPosition: subtitleStyles[cue.id]?.customPosition,
     }));
   }, [srtText, subtitleStyles]);
 
@@ -950,12 +977,26 @@ export function DuckSubtitle() {
       // 点击选择字幕初始位置
       const normalizedX = point.x / point.width * selectedResolution.width;
       const normalizedY = point.y / point.height * selectedResolution.height;
-      setCenterRegion((prev) => ({
-        ...prev,
-        manualPosition: { x: normalizedX, y: normalizedY },
-      }));
+
+      if (selectingCueId !== null) {
+        // 为单条字幕设置位置
+        setSubtitleStyles((prev) => ({
+          ...prev,
+          [selectingCueId]: {
+            ...prev[selectingCueId],
+            customPosition: { x: normalizedX, y: normalizedY },
+          },
+        }));
+        setSelectingCueId(null);
+      } else {
+        // 为全局设置位置
+        setCenterRegion((prev) => ({
+          ...prev,
+          manualPosition: { x: normalizedX, y: normalizedY },
+        }));
+        setPositionMode("manual");
+      }
       setIsSelectingPosition(false);
-      setPositionMode("manual");
       return;
     }
 
@@ -1009,8 +1050,8 @@ export function DuckSubtitle() {
 
   const updateSubtitleStyle = (
     cueId: number,
-    key: "fontFamily" | "fontSize" | "animation",
-    value: string | number | EnterAnimationName | undefined
+    key: "fontFamily" | "fontSize" | "animation" | "customPosition",
+    value: string | number | EnterAnimationName | Point | null | undefined
   ) => {
     setSubtitleStyles((prev) => ({
       ...prev,
@@ -1030,10 +1071,15 @@ export function DuckSubtitle() {
           fontFamily: preset.fontFamily,
           fontSize: preset.fontSize,
           animation: preset.animation,
+          customPosition: preset.manualPosition,
         };
       });
       return updated;
     });
+    // 如果预设包含位置模式，同步更新全局位置模式
+    if (preset.positionMode) {
+      setPositionMode(preset.positionMode);
+    }
   };
 
   const applyPresetToAll = (preset: StylePreset) => {
@@ -1044,10 +1090,15 @@ export function DuckSubtitle() {
           fontFamily: preset.fontFamily,
           fontSize: preset.fontSize,
           animation: preset.animation,
+          customPosition: preset.manualPosition,
         };
       });
       return updated;
     });
+    // 如果预设包含位置模式，同步更新全局位置模式
+    if (preset.positionMode) {
+      setPositionMode(preset.positionMode);
+    }
   };
 
   const toggleCueSelection = (cueId: number) => {
@@ -1256,8 +1307,12 @@ export function DuckSubtitle() {
               {isSelectingPosition ? (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/40 pointer-events-none">
                   <div className="text-center">
-                    <div className="text-white text-lg font-semibold mb-2">点击选择字幕初始位置</div>
-                    <div className="text-blue-300 text-sm">字幕将从您点击的位置开始显示</div>
+                    <div className="text-white text-lg font-semibold mb-2">
+                      {selectingCueId !== null ? `点击选择字幕 #${selectingCueId + 1} 的位置` : "点击选择全局字幕位置"}
+                    </div>
+                    <div className="text-blue-300 text-sm">
+                      {selectingCueId !== null ? "仅此条字幕将从点击位置显示" : "所有字幕将从点击位置开始显示"}
+                    </div>
                   </div>
                 </div>
               ) : null}
@@ -1266,7 +1321,7 @@ export function DuckSubtitle() {
         </section>
 
         <aside className="space-y-3">
-          <details open className="group overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900/50 backdrop-blur-sm">
+          <details className="group overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900/50 backdrop-blur-sm">
             <summary className="cursor-pointer select-none px-4 py-3 text-sm font-semibold text-neutral-100 transition-colors hover:bg-neutral-800/50">
               <div className="flex items-center gap-2">
                 <svg className="h-4 w-4 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1300,7 +1355,78 @@ export function DuckSubtitle() {
             </div>
           </details>
 
-          <details open className="group overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900/50 backdrop-blur-sm">
+          <details className="group overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900/50 backdrop-blur-sm">
+            <summary className="cursor-pointer select-none px-4 py-3 text-sm font-semibold text-neutral-100 transition-colors hover:bg-neutral-800/50">
+              <div className="flex items-center gap-2">
+                <svg className="h-4 w-4 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                </svg>
+                <span>中心区域设置</span>
+              </div>
+            </summary>
+            <div className="border-t border-neutral-800 px-4 py-3">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <div className="text-xs font-semibold uppercase tracking-wider text-neutral-400">精准数值 (%)</div>
+                  <div className="grid gap-2.5 sm:grid-cols-2">
+                    <label className="space-y-1.5">
+                      <div className="text-xs font-medium text-neutral-300">X 位置</div>
+                      <input
+                        type="number"
+                        min={0}
+                        max={90}
+                        step={1}
+                        value={Math.round(centerRegion.x * 100)}
+                        onChange={(event) => updateCenterRegion("x", Number(event.target.value) / 100)}
+                        className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-3 py-1.5 text-sm text-neutral-100 focus:border-yellow-500 focus:outline-none focus:ring-1 focus:ring-yellow-500"
+                      />
+                    </label>
+
+                    <label className="space-y-1.5">
+                      <div className="text-xs font-medium text-neutral-300">Y 位置</div>
+                      <input
+                        type="number"
+                        min={0}
+                        max={90}
+                        step={1}
+                        value={Math.round(centerRegion.y * 100)}
+                        onChange={(event) => updateCenterRegion("y", Number(event.target.value) / 100)}
+                        className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-3 py-1.5 text-sm text-neutral-100 focus:border-yellow-500 focus:outline-none focus:ring-1 focus:ring-yellow-500"
+                      />
+                    </label>
+
+                    <label className="space-y-1.5">
+                      <div className="text-xs font-medium text-neutral-300">宽度</div>
+                      <input
+                        type="number"
+                        min={10}
+                        max={90}
+                        step={1}
+                        value={Math.round(centerRegion.width * 100)}
+                        onChange={(event) => updateCenterRegion("width", Number(event.target.value) / 100)}
+                        className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-3 py-1.5 text-sm text-neutral-100 focus:border-yellow-500 focus:outline-none focus:ring-1 focus:ring-yellow-500"
+                      />
+                    </label>
+
+                    <label className="space-y-1.5">
+                      <div className="text-xs font-medium text-neutral-300">高度</div>
+                      <input
+                        type="number"
+                        min={10}
+                        max={90}
+                        step={1}
+                        value={Math.round(centerRegion.height * 100)}
+                        onChange={(event) => updateCenterRegion("height", Number(event.target.value) / 100)}
+                        className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-3 py-1.5 text-sm text-neutral-100 focus:border-yellow-500 focus:outline-none focus:ring-1 focus:ring-yellow-500"
+                      />
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </details>
+
+          <details className="group overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900/50 backdrop-blur-sm">
             <summary className="cursor-pointer select-none px-4 py-3 text-sm font-semibold text-neutral-100 transition-colors hover:bg-neutral-800/50">
               <div className="flex items-center gap-2">
                 <svg className="h-4 w-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1404,78 +1530,7 @@ export function DuckSubtitle() {
             </div>
           </details>
 
-          <details open className="group overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900/50 backdrop-blur-sm">
-            <summary className="cursor-pointer select-none px-4 py-3 text-sm font-semibold text-neutral-100 transition-colors hover:bg-neutral-800/50">
-              <div className="flex items-center gap-2">
-                <svg className="h-4 w-4 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-                </svg>
-                <span>中心区域设置</span>
-              </div>
-            </summary>
-            <div className="border-t border-neutral-800 px-4 py-3">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <div className="text-xs font-semibold uppercase tracking-wider text-neutral-400">精准数值 (%)</div>
-                  <div className="grid gap-2.5 sm:grid-cols-2">
-                    <label className="space-y-1.5">
-                      <div className="text-xs font-medium text-neutral-300">X 位置</div>
-                      <input
-                        type="number"
-                        min={0}
-                        max={90}
-                        step={1}
-                        value={Math.round(centerRegion.x * 100)}
-                        onChange={(event) => updateCenterRegion("x", Number(event.target.value) / 100)}
-                        className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-3 py-1.5 text-sm text-neutral-100 focus:border-yellow-500 focus:outline-none focus:ring-1 focus:ring-yellow-500"
-                      />
-                    </label>
-
-                    <label className="space-y-1.5">
-                      <div className="text-xs font-medium text-neutral-300">Y 位置</div>
-                      <input
-                        type="number"
-                        min={0}
-                        max={90}
-                        step={1}
-                        value={Math.round(centerRegion.y * 100)}
-                        onChange={(event) => updateCenterRegion("y", Number(event.target.value) / 100)}
-                        className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-3 py-1.5 text-sm text-neutral-100 focus:border-yellow-500 focus:outline-none focus:ring-1 focus:ring-yellow-500"
-                      />
-                    </label>
-
-                    <label className="space-y-1.5">
-                      <div className="text-xs font-medium text-neutral-300">宽度</div>
-                      <input
-                        type="number"
-                        min={10}
-                        max={90}
-                        step={1}
-                        value={Math.round(centerRegion.width * 100)}
-                        onChange={(event) => updateCenterRegion("width", Number(event.target.value) / 100)}
-                        className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-3 py-1.5 text-sm text-neutral-100 focus:border-yellow-500 focus:outline-none focus:ring-1 focus:ring-yellow-500"
-                      />
-                    </label>
-
-                    <label className="space-y-1.5">
-                      <div className="text-xs font-medium text-neutral-300">高度</div>
-                      <input
-                        type="number"
-                        min={10}
-                        max={90}
-                        step={1}
-                        value={Math.round(centerRegion.height * 100)}
-                        onChange={(event) => updateCenterRegion("height", Number(event.target.value) / 100)}
-                        className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-3 py-1.5 text-sm text-neutral-100 focus:border-yellow-500 focus:outline-none focus:ring-1 focus:ring-yellow-500"
-                      />
-                    </label>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </details>
-
-          <details open className="group overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900/50 backdrop-blur-sm">
+          <details className="group overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900/50 backdrop-blur-sm">
             <summary className="cursor-pointer select-none px-4 py-3 text-sm font-semibold text-neutral-100 transition-colors hover:bg-neutral-800/50">
               <div className="flex items-center gap-2">
                 <svg className="h-4 w-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1499,7 +1554,9 @@ export function DuckSubtitle() {
                         title={preset.description}
                       >
                         <div className="text-xs font-medium text-neutral-200">{preset.label}</div>
-                        <div className="text-[10px] text-neutral-500">{preset.fontSize}px</div>
+                        <div className="text-[10px] text-neutral-500">
+                          {preset.fontSize}px · {preset.positionMode === "random" ? "随机" : "固定"}
+                        </div>
                       </button>
                     ))}
                   </div>
@@ -1550,7 +1607,7 @@ export function DuckSubtitle() {
                     {cues.map((cue) => {
                       const isSelected = selectedCueIds.has(cue.id);
                       const isExpanded = expandedCueId === cue.id;
-                      const hasCustomStyle = subtitleStyles[cue.id]?.fontFamily || subtitleStyles[cue.id]?.fontSize || subtitleStyles[cue.id]?.animation;
+                      const hasCustomStyle = subtitleStyles[cue.id]?.fontFamily || subtitleStyles[cue.id]?.fontSize || subtitleStyles[cue.id]?.animation || subtitleStyles[cue.id]?.customPosition;
 
                       return (
                         <div
@@ -1583,6 +1640,11 @@ export function DuckSubtitle() {
                                 {hasCustomStyle && (
                                   <span className="shrink-0 rounded bg-green-500/20 px-1.5 py-0.5 text-[10px] text-green-400">
                                     已设置
+                                  </span>
+                                )}
+                                {subtitleStyles[cue.id]?.customPosition && (
+                                  <span className="shrink-0 rounded bg-blue-500/20 px-1.5 py-0.5 text-[10px] text-blue-400">
+                                    定位
                                   </span>
                                 )}
                               </div>
@@ -1648,6 +1710,57 @@ export function DuckSubtitle() {
                                   ))}
                                 </select>
                               </label>
+                              <div className="space-y-1">
+                                <div className="text-xs text-neutral-400">字幕位置</div>
+                                {subtitleStyles[cue.id]?.customPosition ? (
+                                  <div className="rounded-lg bg-blue-500/10 border border-blue-500/30 p-2">
+                                    <div className="text-xs text-neutral-400 mb-1">
+                                      X: {Math.round(subtitleStyles[cue.id].customPosition!.x)}px,
+                                      Y: {Math.round(subtitleStyles[cue.id].customPosition!.y)}px
+                                    </div>
+                                    <div className="flex gap-1">
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setSelectingCueId(cue.id);
+                                          setIsSelectingPosition(true);
+                                          if (isDrawMode) {
+                                            setIsDrawMode(false);
+                                            setDraftRect(null);
+                                            dragStartRef.current = null;
+                                          }
+                                        }}
+                                        className="flex-1 rounded-md bg-blue-500/20 px-2 py-1 text-xs text-blue-300 transition-colors hover:bg-blue-500/30"
+                                      >
+                                        重新选择
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => updateSubtitleStyle(cue.id, "customPosition", null)}
+                                        className="flex-1 rounded-md bg-neutral-700 px-2 py-1 text-xs text-neutral-300 transition-colors hover:bg-neutral-600"
+                                      >
+                                        清除位置
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setSelectingCueId(cue.id);
+                                      setIsSelectingPosition(true);
+                                      if (isDrawMode) {
+                                        setIsDrawMode(false);
+                                        setDraftRect(null);
+                                        dragStartRef.current = null;
+                                      }
+                                    }}
+                                    className="w-full rounded-lg bg-gradient-to-r from-blue-500 to-cyan-500 px-2 py-1.5 text-xs font-medium text-white transition-all hover:shadow-blue-500/50 hover:scale-[1.02]"
+                                  >
+                                    点击屏幕设置位置
+                                  </button>
+                                )}
+                              </div>
                               <button
                                 type="button"
                                 onClick={() => setSubtitleStyles((prev) => {
