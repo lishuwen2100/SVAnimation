@@ -35,6 +35,8 @@ type CueLayout = {
   width: number;
   height: number;
   fontSize: number;
+  targetX: number; // 目标落点X
+  targetY: number; // 目标落点Y
 };
 
 type GroupLayout = {
@@ -62,6 +64,7 @@ type SubtitleCompositionProps = {
     width: number;
     height: number;
     show: boolean;
+    manualPosition?: Point | null;
   };
 };
 
@@ -295,14 +298,17 @@ const rotateLeft90 = (point: Point, pivot: Point): Point => {
   };
 };
 
-const buildLayouts = (cues: SubtitleCue[], width: number, height: number) => {
+const buildLayouts = (
+  cues: SubtitleCue[],
+  width: number,
+  height: number,
+  manualPos?: Point | null,
+  centerRect?: { left: number; top: number; width: number; height: number }
+) => {
   const cueLayouts: CueLayout[] = [];
   const groups: GroupLayout[] = [];
   const groupCount = Math.ceil(cues.length / GROUP_SIZE);
   const seed = hashString(cues.map((cue) => cue.text).join("|"));
-
-  const firstX = seededRange(seed, width * 0.36, width * 0.49);
-  const firstY = seededRange(seed + 7, height * 0.34, height * 0.45);
 
   let nextGroupAnchor: Point | null = null;
 
@@ -312,44 +318,62 @@ const buildLayouts = (cues: SubtitleCue[], width: number, height: number) => {
 
     for (let cueIndex = startCueIndex; cueIndex <= endCueIndex; cueIndex += 1) {
       const fontSize = cues[cueIndex].fontSize || FONT_SIZE;
-      const width = estimateTextWidth(cues[cueIndex].text, fontSize);
-      const height = calculateBoxHeight(fontSize);
+      const cueWidth = estimateTextWidth(cues[cueIndex].text, fontSize);
+      const cueHeight = calculateBoxHeight(fontSize);
 
-      if (cueIndex === startCueIndex) {
-        if (groupIndex === 0) {
-          cueLayouts.push({
-            cueIndex,
-            groupIndex,
-            x: firstX,
-            y: firstY,
-            width,
-            height,
-            fontSize,
-          });
-        } else {
-          const anchor = nextGroupAnchor ?? { x: firstX, y: firstY + height };
-          cueLayouts.push({
-            cueIndex,
-            groupIndex,
-            x: anchor.x,
-            y: anchor.y - height,
-            width,
-            height,
-            fontSize,
-          });
-        }
+      // 为每条字幕生成独立的目标落点(左上角顶点的位置)
+      let targetX: number;
+      let targetY: number;
+
+      if (manualPos) {
+        // 手动模式: 所有字幕都使用相同的手动选择位置
+        targetX = manualPos.x;
+        targetY = manualPos.y;
+      } else if (centerRect) {
+        // 随机模式: 在中心区域内为每条字幕随机生成落点
+        const cueSeed = seed + cueIndex * 137;
+        // 确保字幕完全在中心区域内: 左上角位置范围
+        const maxX = Math.max(centerRect.left, centerRect.left + centerRect.width - cueWidth);
+        const maxY = Math.max(centerRect.top, centerRect.top + centerRect.height - cueHeight);
+        targetX = seededRange(cueSeed, centerRect.left, maxX);
+        targetY = seededRange(cueSeed + 73, centerRect.top, maxY);
       } else {
-        const prev = cueLayouts[cueIndex - 1];
-        cueLayouts.push({
-          cueIndex,
-          groupIndex,
-          x: prev.x,
-          y: prev.y + prev.height,
-          width,
-          height,
-          fontSize,
-        });
+        // 后备: 使用整个画布的中心区域
+        targetX = seededRange(seed + cueIndex * 137, width * 0.3, width * 0.6);
+        targetY = seededRange(seed + cueIndex * 137 + 73, height * 0.3, height * 0.6);
       }
+
+      // 计算贴合位置(初始渲染位置)
+      let x: number;
+      let y: number;
+
+      if (cueIndex === 0) {
+        // 第一条字幕直接在落点
+        x = targetX;
+        y = targetY;
+      } else if (cueIndex === startCueIndex && groupIndex > 0) {
+        // 新组的第一条: 贴合到前一组旋转后的位置
+        const anchor = nextGroupAnchor ?? { x: targetX, y: targetY };
+        x = anchor.x;
+        y = anchor.y;
+      } else {
+        // 贴合到前一条字幕的左下角 (左上角 -> 左下角)
+        const prev = cueLayouts[cueIndex - 1];
+        x = prev.x;
+        y = prev.y + prev.height;
+      }
+
+      cueLayouts.push({
+        cueIndex,
+        groupIndex,
+        x,
+        y,
+        width: cueWidth,
+        height: cueHeight,
+        fontSize,
+        targetX,
+        targetY,
+      });
     }
 
     const groupCueLayouts = cueLayouts.slice(startCueIndex, endCueIndex + 1);
@@ -481,26 +505,6 @@ const SubtitleComposition = ({
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  const { cueLayouts, groups } = useMemo(
-    () => buildLayouts(cues, compositionSize.width, compositionSize.height),
-    [compositionSize.height, compositionSize.width, cues]
-  );
-
-  const boundaries = useMemo(
-    () =>
-      Array.from({ length: Math.max(groups.length - 1, 0) }, (_, index) => {
-        const enteringGroup = index + 1;
-        const firstCue = cues[enteringGroup * GROUP_SIZE];
-
-        return {
-          enteringGroup,
-          startFrame: firstCue.startFrame - ROTATE_DURATION_FRAMES,
-          endFrame: firstCue.startFrame,
-        };
-      }),
-    [cues, groups.length]
-  );
-
   const centerRect = useMemo(
     () => ({
       left: centerRegion.x * compositionSize.width,
@@ -518,6 +522,26 @@ const SubtitleComposition = ({
     ]
   );
 
+  const { cueLayouts, groups } = useMemo(
+    () => buildLayouts(cues, compositionSize.width, compositionSize.height, centerRegion.manualPosition, centerRect),
+    [compositionSize.height, compositionSize.width, cues, centerRegion.manualPosition, centerRect]
+  );
+
+  const boundaries = useMemo(
+    () =>
+      Array.from({ length: Math.max(groups.length - 1, 0) }, (_, index) => {
+        const enteringGroup = index + 1;
+        const firstCue = cues[enteringGroup * GROUP_SIZE];
+
+        return {
+          enteringGroup,
+          startFrame: firstCue.startFrame - ROTATE_DURATION_FRAMES,
+          endFrame: firstCue.startFrame,
+        };
+      }),
+    [cues, groups.length]
+  );
+
   const shiftSteps = useMemo(() => {
     let cumulativeX = 0;
     let cumulativeY = 0;
@@ -533,29 +557,17 @@ const SubtitleComposition = ({
 
     for (let cueIndex = 0; cueIndex < cues.length; cueIndex += 1) {
       const layout = cueLayouts[cueIndex];
-      const centerX = layout.x + layout.width / 2 + cumulativeX;
-      const centerY = layout.y + layout.height / 2 + cumulativeY;
 
-      // 只有当字幕中心在矩形外部时才需要移动到边界
-      let targetCenterX = centerX;
-      let targetCenterY = centerY;
+      // 计算当前字幕左上角的实际位置(包含累积偏移)
+      const currentX = layout.x + cumulativeX;
+      const currentY = layout.y + cumulativeY;
 
-      if (centerX < centerRect.left) {
-        targetCenterX = centerRect.left;
-      } else if (centerX > centerRect.left + centerRect.width) {
-        targetCenterX = centerRect.left + centerRect.width;
-      }
+      // 检查左上角是否到达目标落点
+      const moveX = layout.targetX - currentX;
+      const moveY = layout.targetY - currentY;
 
-      if (centerY < centerRect.top) {
-        targetCenterY = centerRect.top;
-      } else if (centerY > centerRect.top + centerRect.height) {
-        targetCenterY = centerRect.top + centerRect.height;
-      }
-
-      const moveX = targetCenterX - centerX;
-      const moveY = targetCenterY - centerY;
-
-      if (moveX !== 0 || moveY !== 0) {
+      // 如果左上角不在目标落点,需要移动整组
+      if (Math.abs(moveX) > 0.5 || Math.abs(moveY) > 0.5) {
         steps.push({
           startFrame: cues[cueIndex].startFrame + 10,
           endFrame: cues[cueIndex].startFrame + 10 + SHIFT_DURATION_FRAMES,
@@ -571,7 +583,7 @@ const SubtitleComposition = ({
     }
 
     return steps;
-  }, [centerRect.height, centerRect.left, centerRect.top, centerRect.width, cueLayouts, cues]);
+  }, [cueLayouts, cues]);
 
   const globalShift = useMemo(() => {
     let x = 0;
@@ -722,6 +734,29 @@ const SubtitleComposition = ({
         </div>
       ) : null}
 
+      {/* 调试: 显示每条字幕的目标落点 */}
+      {centerRegion.show ? (
+        <>
+          {cueLayouts.map((layout) => (
+            <div
+              key={`target-${layout.cueIndex}`}
+              className="absolute pointer-events-none"
+              style={{
+                left: layout.targetX,
+                top: layout.targetY,
+                width: 8,
+                height: 8,
+              }}
+            >
+              <div className="w-2 h-2 bg-red-500 rounded-full" />
+              <div className="text-[8px] text-red-400 whitespace-nowrap">
+                {layout.cueIndex}
+              </div>
+            </div>
+          ))}
+        </>
+      ) : null}
+
       <div
         className="absolute inset-0"
         style={{ transform: `translate(${globalShift.x}px, ${globalShift.y}px)` }}
@@ -789,12 +824,20 @@ export function DuckSubtitle() {
   const [srtText, setSrtText] = useState(demoSrt);
   const [audioSrc, setAudioSrc] = useState<string | null>(null);
   const [audioDuration, setAudioDuration] = useState(0);
-  const [centerRegion, setCenterRegion] = useState({
+  const [centerRegion, setCenterRegion] = useState<{
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    show: boolean;
+    manualPosition?: Point | null;
+  }>({
     x: 0.28,
     y: 0.28,
     width: 0.44,
     height: 0.42,
     show: true,
+    manualPosition: null,
   });
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const dragStartRef = useRef<{ x: number; y: number } | null>(null);
@@ -806,6 +849,8 @@ export function DuckSubtitle() {
   const [subtitleStyles, setSubtitleStyles] = useState<Record<number, SubtitleStyle>>({});
   const [selectedCueIds, setSelectedCueIds] = useState<Set<number>>(new Set());
   const [expandedCueId, setExpandedCueId] = useState<number | null>(null);
+  const [positionMode, setPositionMode] = useState<"random" | "manual">("random");
+  const [isSelectingPosition, setIsSelectingPosition] = useState(false);
 
   const selectedResolution =
     resolutionOptions.find((option) => option.id === resolutionId) ?? {
@@ -897,10 +942,25 @@ export function DuckSubtitle() {
   };
 
   const handleOverlayPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (!isDrawMode) return;
-    if (event.button !== 0) return;
     const point = getLocalPoint(event);
     if (!point) return;
+
+    if (isSelectingPosition) {
+      if (event.button !== 0) return;
+      // 点击选择字幕初始位置
+      const normalizedX = point.x / point.width * selectedResolution.width;
+      const normalizedY = point.y / point.height * selectedResolution.height;
+      setCenterRegion((prev) => ({
+        ...prev,
+        manualPosition: { x: normalizedX, y: normalizedY },
+      }));
+      setIsSelectingPosition(false);
+      setPositionMode("manual");
+      return;
+    }
+
+    if (!isDrawMode) return;
+    if (event.button !== 0) return;
 
     event.currentTarget.setPointerCapture(event.pointerId);
     dragStartRef.current = { x: point.x, y: point.y };
@@ -908,6 +968,7 @@ export function DuckSubtitle() {
   };
 
   const handleOverlayPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (isSelectingPosition) return;
     if (!isDrawMode) return;
     if (!dragStartRef.current) return;
     const point = getLocalPoint(event);
@@ -921,6 +982,7 @@ export function DuckSubtitle() {
   };
 
   const handleOverlayPointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (isSelectingPosition) return;
     if (!isDrawMode) return;
     if (!dragStartRef.current) return;
     const point = getLocalPoint(event);
@@ -1085,6 +1147,28 @@ export function DuckSubtitle() {
             </svg>
             <span className="text-sm font-semibold">{centerRegion.show ? "隐藏框" : "显示框"}</span>
           </button>
+
+          <button
+            type="button"
+            className={`inline-flex items-center gap-2.5 rounded-lg px-5 py-2.5 font-medium shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98] ${
+              isSelectingPosition
+                ? "bg-gradient-to-r from-blue-500 to-cyan-500 text-white hover:shadow-blue-500/50"
+                : "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
+            }`}
+            onClick={() => {
+              setIsSelectingPosition((prev) => !prev);
+              if (isDrawMode) {
+                setIsDrawMode(false);
+                setDraftRect(null);
+                dragStartRef.current = null;
+              }
+            }}
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11" />
+            </svg>
+            <span className="text-sm font-semibold">{isSelectingPosition ? "点击屏幕选择位置" : "设置字幕位置"}</span>
+          </button>
         </div>
 
         <div className="flex flex-wrap items-center gap-3 text-sm">
@@ -1126,7 +1210,7 @@ export function DuckSubtitle() {
 
           <main className="relative overflow-hidden border border-neutral-800">
             <Player
-              key={`${srtText.length}-${durationInFrames}-${audioSrc ?? "no-audio"}-${resolutionId}-${centerRegion.x}-${centerRegion.y}-${centerRegion.width}-${centerRegion.height}-${centerRegion.show}`}
+              key={`${srtText.length}-${durationInFrames}-${audioSrc ?? "no-audio"}-${resolutionId}-${centerRegion.x}-${centerRegion.y}-${centerRegion.width}-${centerRegion.height}-${centerRegion.show}-${centerRegion.manualPosition?.x ?? 'null'}-${centerRegion.manualPosition?.y ?? 'null'}`}
               component={SubtitleComposition}
             inputProps={{
               cues,
@@ -1150,7 +1234,9 @@ export function DuckSubtitle() {
 
             <div
               ref={overlayRef}
-              className={`absolute inset-0 z-20 ${isDrawMode ? "pointer-events-auto cursor-crosshair" : "pointer-events-none"}`}
+              className={`absolute inset-0 z-20 ${
+                isDrawMode || isSelectingPosition ? "pointer-events-auto cursor-crosshair" : "pointer-events-none"
+              }`}
               style={{ touchAction: "none" }}
               onPointerDown={handleOverlayPointerDown}
               onPointerMove={handleOverlayPointerMove}
@@ -1166,6 +1252,14 @@ export function DuckSubtitle() {
                     height: draftRect.height,
                   }}
                 />
+              ) : null}
+              {isSelectingPosition ? (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/40 pointer-events-none">
+                  <div className="text-center">
+                    <div className="text-white text-lg font-semibold mb-2">点击选择字幕初始位置</div>
+                    <div className="text-blue-300 text-sm">字幕将从您点击的位置开始显示</div>
+                  </div>
+                </div>
               ) : null}
             </div>
           </main>
@@ -1202,6 +1296,110 @@ export function DuckSubtitle() {
                     <span className="text-sm font-medium">{option.label}</span>
                   </label>
                 ))}
+              </div>
+            </div>
+          </details>
+
+          <details open className="group overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900/50 backdrop-blur-sm">
+            <summary className="cursor-pointer select-none px-4 py-3 text-sm font-semibold text-neutral-100 transition-colors hover:bg-neutral-800/50">
+              <div className="flex items-center gap-2">
+                <svg className="h-4 w-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11" />
+                </svg>
+                <span>字幕位置设定</span>
+              </div>
+            </summary>
+            <div className="border-t border-neutral-800 px-4 py-3">
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <div className="text-xs font-semibold uppercase tracking-wider text-neutral-400">位置模式</div>
+                  <div className="grid gap-2">
+                    <label
+                      className={`flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2 transition-all ${
+                        positionMode === "random"
+                          ? "border-blue-500 bg-blue-500/10 text-blue-300"
+                          : "border-neutral-700 text-neutral-300 hover:border-neutral-600 hover:bg-neutral-800/50"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="positionMode"
+                        checked={positionMode === "random"}
+                        onChange={() => {
+                          setPositionMode("random");
+                          setCenterRegion((prev) => ({ ...prev, manualPosition: null }));
+                        }}
+                        className="text-blue-500"
+                      />
+                      <div>
+                        <div className="text-sm font-medium">随机位置</div>
+                        <div className="text-xs text-neutral-500">使用算法计算的随机位置</div>
+                      </div>
+                    </label>
+                    <label
+                      className={`flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2 transition-all ${
+                        positionMode === "manual"
+                          ? "border-blue-500 bg-blue-500/10 text-blue-300"
+                          : "border-neutral-700 text-neutral-300 hover:border-neutral-600 hover:bg-neutral-800/50"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="positionMode"
+                        checked={positionMode === "manual"}
+                        onChange={() => setPositionMode("manual")}
+                        className="text-blue-500"
+                      />
+                      <div className="flex-1">
+                        <div className="text-sm font-medium">手动位置</div>
+                        <div className="text-xs text-neutral-500">点击屏幕选择字幕进入位置</div>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
+                {positionMode === "manual" && (
+                  <div className="space-y-2">
+                    {centerRegion.manualPosition ? (
+                      <div className="rounded-lg bg-blue-500/10 border border-blue-500/30 p-3">
+                        <div className="text-xs font-medium text-blue-300 mb-1">已选择位置</div>
+                        <div className="text-xs text-neutral-400">
+                          X: {Math.round(centerRegion.manualPosition.x)}px,
+                          Y: {Math.round(centerRegion.manualPosition.y)}px
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsSelectingPosition(true);
+                            if (isDrawMode) {
+                              setIsDrawMode(false);
+                              setDraftRect(null);
+                              dragStartRef.current = null;
+                            }
+                          }}
+                          className="mt-2 w-full rounded-md bg-blue-500/20 px-2 py-1.5 text-xs text-blue-300 transition-colors hover:bg-blue-500/30"
+                        >
+                          重新选择
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsSelectingPosition(true);
+                          if (isDrawMode) {
+                            setIsDrawMode(false);
+                            setDraftRect(null);
+                            dragStartRef.current = null;
+                          }
+                        }}
+                        className="w-full rounded-lg bg-gradient-to-r from-blue-500 to-cyan-500 px-3 py-2 text-sm font-medium text-white transition-all hover:shadow-blue-500/50 hover:scale-[1.02]"
+                      >
+                        点击屏幕选择位置
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </details>

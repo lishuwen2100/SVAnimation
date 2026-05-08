@@ -21,6 +21,13 @@ npm run build    # Build for production
 npm run preview  # Preview production build
 ```
 
+## Git Commit Guidelines
+
+- Write commit messages in Chinese
+- DO NOT include "Co-Authored-By: Claude" or any AI attribution in commit messages
+- Focus on what changed and why, not who or how it was created
+- Keep messages concise and descriptive
+
 ## Architecture
 
 **Modular Structure:**
