@@ -17,6 +17,9 @@ type SubtitleCue = {
   startFrame: number;
   endFrame: number;
   text: string;
+  fontFamily?: string;
+  fontSize?: number;
+  animation?: EnterAnimationName;
 };
 
 type Point = {
@@ -31,6 +34,7 @@ type CueLayout = {
   y: number;
   width: number;
   height: number;
+  fontSize: number;
 };
 
 type GroupLayout = {
@@ -59,7 +63,6 @@ type SubtitleCompositionProps = {
     height: number;
     show: boolean;
   };
-  selectedAnimations: EnterAnimationName[];
 };
 
 type EnterAnimationName =
@@ -81,6 +84,21 @@ type ResolutionOption = {
   height: number;
 };
 
+type StylePreset = {
+  id: string;
+  label: string;
+  fontFamily?: string;
+  fontSize?: number;
+  animation?: EnterAnimationName;
+  description: string;
+};
+
+type SubtitleStyle = {
+  fontFamily?: string;
+  fontSize?: number;
+  animation?: EnterAnimationName;
+};
+
 const FPS = 30;
 const DEFAULT_WIDTH = 1280;
 const DEFAULT_HEIGHT = 720;
@@ -88,8 +106,48 @@ const GROUP_SIZE = 3;
 const ROTATE_DURATION_FRAMES = 16;
 const SHIFT_DURATION_FRAMES = 12;
 const FONT_SIZE = 72;
+// @ts-expect-error - Legacy constant kept for documentation, now calculated dynamically
 const BOX_HEIGHT = 86;
 const ROTATE_FADE_PHASE = 0.45;
+
+const fontFamilyOptions = [
+  { id: "default", label: "默认字体", value: "ui-sans-serif, system-ui, sans-serif" },
+  { id: "serif", label: "宋体", value: "serif" },
+  { id: "mono", label: "等宽", value: "ui-monospace, monospace" },
+  { id: "kai", label: "楷体", value: "KaiTi, serif" },
+  { id: "hei", label: "黑体", value: "SimHei, sans-serif" },
+];
+
+const stylePresets: StylePreset[] = [
+  {
+    id: "default",
+    label: "标准",
+    fontSize: 72,
+    fontFamily: "ui-sans-serif, system-ui, sans-serif",
+    description: "默认样式",
+  },
+  {
+    id: "large-bold",
+    label: "大标题",
+    fontSize: 96,
+    fontFamily: "SimHei, sans-serif",
+    description: "加大加粗",
+  },
+  {
+    id: "small-subtitle",
+    label: "小字幕",
+    fontSize: 54,
+    fontFamily: "ui-sans-serif, system-ui, sans-serif",
+    description: "紧凑显示",
+  },
+  {
+    id: "elegant",
+    label: "优雅",
+    fontSize: 68,
+    fontFamily: "KaiTi, serif",
+    description: "楷体风格",
+  },
+];
 
 const enterAnimationOptions: EnterAnimationOption[] = [
   { id: "slam-bounce", label: "砸入弹跳" },
@@ -208,7 +266,7 @@ const seededRange = (seed: number, min: number, max: number) => {
   return min + n * (max - min);
 };
 
-const estimateTextWidth = (text: string) => {
+const estimateTextWidth = (text: string, fontSize = FONT_SIZE) => {
   let cjkCount = 0;
   let asciiCount = 0;
 
@@ -220,7 +278,12 @@ const estimateTextWidth = (text: string) => {
     }
   }
 
-  return Math.max(220, cjkCount * FONT_SIZE * 0.96 + asciiCount * FONT_SIZE * 0.58 + 28);
+  return Math.max(220, cjkCount * fontSize * 0.96 + asciiCount * fontSize * 0.58 + 28);
+};
+
+const calculateBoxHeight = (fontSize = FONT_SIZE) => {
+  // BOX_HEIGHT \u76f8\u5bf9\u4e8e FONT_SIZE \u7684\u6bd4\u4f8b\u662f 86/72 \u2248 1.194
+  return Math.ceil(fontSize * 1.194);
 };
 
 const rotateLeft90 = (point: Point, pivot: Point): Point => {
@@ -248,7 +311,9 @@ const buildLayouts = (cues: SubtitleCue[], width: number, height: number) => {
     const endCueIndex = Math.min(startCueIndex + GROUP_SIZE - 1, cues.length - 1);
 
     for (let cueIndex = startCueIndex; cueIndex <= endCueIndex; cueIndex += 1) {
-      const width = estimateTextWidth(cues[cueIndex].text);
+      const fontSize = cues[cueIndex].fontSize || FONT_SIZE;
+      const width = estimateTextWidth(cues[cueIndex].text, fontSize);
+      const height = calculateBoxHeight(fontSize);
 
       if (cueIndex === startCueIndex) {
         if (groupIndex === 0) {
@@ -258,17 +323,19 @@ const buildLayouts = (cues: SubtitleCue[], width: number, height: number) => {
             x: firstX,
             y: firstY,
             width,
-            height: BOX_HEIGHT,
+            height,
+            fontSize,
           });
         } else {
-          const anchor = nextGroupAnchor ?? { x: firstX, y: firstY + BOX_HEIGHT };
+          const anchor = nextGroupAnchor ?? { x: firstX, y: firstY + height };
           cueLayouts.push({
             cueIndex,
             groupIndex,
             x: anchor.x,
-            y: anchor.y - BOX_HEIGHT,
+            y: anchor.y - height,
             width,
-            height: BOX_HEIGHT,
+            height,
+            fontSize,
           });
         }
       } else {
@@ -277,9 +344,10 @@ const buildLayouts = (cues: SubtitleCue[], width: number, height: number) => {
           cueIndex,
           groupIndex,
           x: prev.x,
-          y: prev.y + BOX_HEIGHT,
+          y: prev.y + prev.height,
           width,
-          height: BOX_HEIGHT,
+          height,
+          fontSize,
         });
       }
     }
@@ -288,7 +356,8 @@ const buildLayouts = (cues: SubtitleCue[], width: number, height: number) => {
     const minX = groupCueLayouts[0].x;
     const minY = groupCueLayouts[0].y;
     const maxX = Math.max(...groupCueLayouts.map((layout) => layout.x + layout.width));
-    const maxY = groupCueLayouts[groupCueLayouts.length - 1].y + BOX_HEIGHT;
+    const lastLayout = groupCueLayouts[groupCueLayouts.length - 1];
+    const maxY = lastLayout.y + lastLayout.height;
     const pivot = { x: minX, y: maxY };
 
     const corners = [
@@ -329,13 +398,14 @@ const cueBaseClass =
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
-const getCueEnterAnimation = (
-  cue: SubtitleCue,
-  selectedAnimations: EnterAnimationName[]
-): EnterAnimationName | "default" => {
-  if (selectedAnimations.length === 0) return "default";
+const getCueEnterAnimation = (cue: SubtitleCue): EnterAnimationName | "default" => {
+  // 如果字幕有自定义动画，使用自定义动画
+  if (cue.animation) return cue.animation;
+
+  // 否则从所有动画中随机选择一个
   const hash = hashString(`${cue.id}-${cue.text}`);
-  return selectedAnimations[hash % selectedAnimations.length];
+  const allAnimations = enterAnimationOptions.map((opt) => opt.id);
+  return allAnimations[hash % allAnimations.length];
 };
 
 const getEnterTransform = (
@@ -407,7 +477,6 @@ const SubtitleComposition = ({
   audioSrc,
   compositionSize,
   centerRegion,
-  selectedAnimations,
 }: SubtitleCompositionProps) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -467,8 +536,22 @@ const SubtitleComposition = ({
       const centerX = layout.x + layout.width / 2 + cumulativeX;
       const centerY = layout.y + layout.height / 2 + cumulativeY;
 
-      const targetCenterX = clamp(centerX, centerRect.left, centerRect.left + centerRect.width);
-      const targetCenterY = clamp(centerY, centerRect.top, centerRect.top + centerRect.height);
+      // 只有当字幕中心在矩形外部时才需要移动到边界
+      let targetCenterX = centerX;
+      let targetCenterY = centerY;
+
+      if (centerX < centerRect.left) {
+        targetCenterX = centerRect.left;
+      } else if (centerX > centerRect.left + centerRect.width) {
+        targetCenterX = centerRect.left + centerRect.width;
+      }
+
+      if (centerY < centerRect.top) {
+        targetCenterY = centerRect.top;
+      } else if (centerY > centerRect.top + centerRect.height) {
+        targetCenterY = centerRect.top + centerRect.height;
+      }
+
       const moveX = targetCenterX - centerX;
       const moveY = targetCenterY - centerY;
 
@@ -590,6 +673,7 @@ const SubtitleComposition = ({
       >
         {groupCueIndexes.map((cueIndex) => {
           const layout = cueLayouts[cueIndex];
+          const cue = cues[cueIndex];
           return (
             <div
               key={`rotated-cue-${cueIndex}`}
@@ -597,10 +681,12 @@ const SubtitleComposition = ({
               style={{
                 left: layout.x,
                 top: layout.y,
+                fontSize: cue.fontSize ? `${cue.fontSize}px` : undefined,
+                fontFamily: cue.fontFamily || undefined,
                 textShadow: "0 4px 0 rgba(0,0,0,0.22)",
               }}
             >
-              {cues[cueIndex].text}
+              {cue.text}
             </div>
           );
         })}
@@ -661,7 +747,7 @@ const SubtitleComposition = ({
             const layout = cueLayouts[cueIndex];
             const isLatest = cueIndex === activeCueIndexes[activeCueIndexes.length - 1];
             const frameSinceStart = Math.max(0, frame - cue.startFrame);
-            const animation = isLatest ? getCueEnterAnimation(cue, selectedAnimations) : "default";
+            const animation = isLatest ? getCueEnterAnimation(cue) : "default";
 
             const enter = spring({
               frame: frameSinceStart,
@@ -680,6 +766,8 @@ const SubtitleComposition = ({
                 style={{
                   left: layout.x,
                   top: layout.y,
+                  fontSize: cue.fontSize ? `${cue.fontSize}px` : undefined,
+                  fontFamily: cue.fontFamily || undefined,
                   opacity: interpolate(enter, [0, 1], [0, 1]) * interpolate(visualIndex, [0, 2], [1, 0.54]),
                   transform: getEnterTransform(animation, enter, frameSinceStart),
                   filter: `blur(${interpolate(enter, [0, 1], [8, 0])}px)`,
@@ -714,8 +802,10 @@ export function DuckSubtitle() {
     null
   );
   const [isDrawMode, setIsDrawMode] = useState(false);
-  const [selectedAnimations, setSelectedAnimations] = useState<EnterAnimationName[]>([]);
   const [resolutionId, setResolutionId] = useState("720p");
+  const [subtitleStyles, setSubtitleStyles] = useState<Record<number, SubtitleStyle>>({});
+  const [selectedCueIds, setSelectedCueIds] = useState<Set<number>>(new Set());
+  const [expandedCueId, setExpandedCueId] = useState<number | null>(null);
 
   const selectedResolution =
     resolutionOptions.find((option) => option.id === resolutionId) ?? {
@@ -725,7 +815,15 @@ export function DuckSubtitle() {
       height: DEFAULT_HEIGHT,
     };
 
-  const cues = useMemo(() => parseSrt(srtText), [srtText]);
+  const cues = useMemo(() => {
+    const parsedCues = parseSrt(srtText);
+    return parsedCues.map((cue) => ({
+      ...cue,
+      fontFamily: subtitleStyles[cue.id]?.fontFamily,
+      fontSize: subtitleStyles[cue.id]?.fontSize,
+      animation: subtitleStyles[cue.id]?.animation,
+    }));
+  }, [srtText, subtitleStyles]);
 
   const durationInFrames = useMemo(() => {
     const subtitleFrames = cues.length > 0 ? cues[cues.length - 1].endFrame + FPS * 2 : FPS * 8;
@@ -846,14 +944,74 @@ export function DuckSubtitle() {
     setIsDrawMode(false);
   };
 
-  const toggleAnimation = (id: EnterAnimationName, checked: boolean) => {
-    setSelectedAnimations((prev) => {
-      if (checked) {
-        if (prev.includes(id)) return prev;
-        return [...prev, id];
-      }
-      return prev.filter((item) => item !== id);
+
+  const updateSubtitleStyle = (
+    cueId: number,
+    key: "fontFamily" | "fontSize" | "animation",
+    value: string | number | EnterAnimationName | undefined
+  ) => {
+    setSubtitleStyles((prev) => ({
+      ...prev,
+      [cueId]: {
+        ...prev[cueId],
+        [key]: value,
+      },
+    }));
+  };
+
+  const applyPresetToSelected = (preset: StylePreset) => {
+    if (selectedCueIds.size === 0) return;
+    setSubtitleStyles((prev) => {
+      const updated = { ...prev };
+      selectedCueIds.forEach((cueId) => {
+        updated[cueId] = {
+          fontFamily: preset.fontFamily,
+          fontSize: preset.fontSize,
+          animation: preset.animation,
+        };
+      });
+      return updated;
     });
+  };
+
+  const applyPresetToAll = (preset: StylePreset) => {
+    setSubtitleStyles((prev) => {
+      const updated = { ...prev };
+      cues.forEach((cue) => {
+        updated[cue.id] = {
+          fontFamily: preset.fontFamily,
+          fontSize: preset.fontSize,
+          animation: preset.animation,
+        };
+      });
+      return updated;
+    });
+  };
+
+  const toggleCueSelection = (cueId: number) => {
+    setSelectedCueIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(cueId)) {
+        next.delete(cueId);
+      } else {
+        next.add(cueId);
+      }
+      return next;
+    });
+  };
+
+  const selectAllCues = () => {
+    setSelectedCueIds(new Set(cues.map((cue) => cue.id)));
+  };
+
+  const clearSelection = () => {
+    setSelectedCueIds(new Set());
+  };
+
+  const resetStyles = () => {
+    if (confirm("确定要重置所有字幕样式吗？")) {
+      setSubtitleStyles({});
+    }
   };
 
   return (
@@ -968,13 +1126,12 @@ export function DuckSubtitle() {
 
           <main className="relative overflow-hidden border border-neutral-800">
             <Player
-              key={`${srtText.length}-${durationInFrames}-${audioSrc ?? "no-audio"}-${resolutionId}-${centerRegion.x}-${centerRegion.y}-${centerRegion.width}-${centerRegion.height}-${centerRegion.show}-${selectedAnimations.join(",")}`}
+              key={`${srtText.length}-${durationInFrames}-${audioSrc ?? "no-audio"}-${resolutionId}-${centerRegion.x}-${centerRegion.y}-${centerRegion.width}-${centerRegion.height}-${centerRegion.show}`}
               component={SubtitleComposition}
             inputProps={{
               cues,
               audioSrc,
               centerRegion,
-              selectedAnimations,
               compositionSize: {
                 width: selectedResolution.width,
                 height: selectedResolution.height,
@@ -1120,37 +1277,196 @@ export function DuckSubtitle() {
             </div>
           </details>
 
-          <details className="group overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900/50 backdrop-blur-sm">
+          <details open className="group overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900/50 backdrop-blur-sm">
             <summary className="cursor-pointer select-none px-4 py-3 text-sm font-semibold text-neutral-100 transition-colors hover:bg-neutral-800/50">
               <div className="flex items-center gap-2">
-                <svg className="h-4 w-4 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
+                <svg className="h-4 w-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                 </svg>
-                <span>字幕进入动画</span>
+                <span>字幕样式设置</span>
               </div>
             </summary>
             <div className="border-t border-neutral-800 px-4 py-3">
               <div className="space-y-3">
-                <div className="text-xs text-neutral-400">多选后随机，未勾选则使用默认进入动画</div>
-                <div className="grid gap-2">
-                  {enterAnimationOptions.map((option) => (
-                    <label
-                      key={option.id}
-                      className={`flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2 transition-all ${
-                        selectedAnimations.includes(option.id)
-                          ? "border-purple-500 bg-purple-500/10 text-purple-300"
-                          : "border-neutral-700 text-neutral-300 hover:border-neutral-600 hover:bg-neutral-800/50"
-                      }`}
+                {/* 快速预设 */}
+                <div className="space-y-2">
+                  <div className="text-xs font-semibold uppercase tracking-wider text-neutral-400">快速预设</div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {stylePresets.map((preset) => (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        onClick={() => applyPresetToAll(preset)}
+                        className="group relative rounded-lg border border-neutral-700 bg-neutral-800/30 p-2 text-left transition-all hover:border-green-500 hover:bg-green-500/10"
+                        title={preset.description}
+                      >
+                        <div className="text-xs font-medium text-neutral-200">{preset.label}</div>
+                        <div className="text-[10px] text-neutral-500">{preset.fontSize}px</div>
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => selectedCueIds.size > 0 && applyPresetToSelected(stylePresets[0])}
+                      disabled={selectedCueIds.size === 0}
+                      className="flex-1 rounded-md bg-neutral-800 px-2 py-1.5 text-xs text-neutral-300 transition-colors hover:bg-neutral-700 disabled:opacity-50 disabled:hover:bg-neutral-800"
                     >
-                      <input
-                        type="checkbox"
-                        checked={selectedAnimations.includes(option.id)}
-                        onChange={(event) => toggleAnimation(option.id, event.target.checked)}
-                        className="text-purple-500"
-                      />
-                      <span className="text-sm font-medium">{option.label}</span>
-                    </label>
-                  ))}
+                      应用到选中 ({selectedCueIds.size})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={resetStyles}
+                      className="rounded-md bg-neutral-800 px-2 py-1.5 text-xs text-neutral-300 transition-colors hover:bg-neutral-700"
+                    >
+                      重置全部
+                    </button>
+                  </div>
+                </div>
+
+                {/* 批量操作 */}
+                <div className="space-y-2">
+                  <div className="text-xs font-semibold uppercase tracking-wider text-neutral-400">批量选择</div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={selectAllCues}
+                      className="flex-1 rounded-md bg-neutral-800 px-2 py-1.5 text-xs text-neutral-300 transition-colors hover:bg-neutral-700"
+                    >
+                      全选
+                    </button>
+                    <button
+                      type="button"
+                      onClick={clearSelection}
+                      className="flex-1 rounded-md bg-neutral-800 px-2 py-1.5 text-xs text-neutral-300 transition-colors hover:bg-neutral-700"
+                    >
+                      清空
+                    </button>
+                  </div>
+                </div>
+
+                {/* 字幕列表 */}
+                <div className="space-y-2">
+                  <div className="text-xs font-semibold uppercase tracking-wider text-neutral-400">字幕列表</div>
+                  <div className="max-h-64 space-y-1.5 overflow-y-auto">
+                    {cues.map((cue) => {
+                      const isSelected = selectedCueIds.has(cue.id);
+                      const isExpanded = expandedCueId === cue.id;
+                      const hasCustomStyle = subtitleStyles[cue.id]?.fontFamily || subtitleStyles[cue.id]?.fontSize || subtitleStyles[cue.id]?.animation;
+
+                      return (
+                        <div
+                          key={cue.id}
+                          className={`rounded-lg border transition-all ${
+                            isSelected
+                              ? "border-green-500 bg-green-500/10"
+                              : "border-neutral-700 bg-neutral-800/30 hover:border-neutral-600"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 p-2">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => toggleCueSelection(cue.id)}
+                              className="shrink-0 text-green-500"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setExpandedCueId(isExpanded ? null : cue.id)}
+                              className="flex-1 text-left"
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-medium text-neutral-300">
+                                  #{cue.id + 1}
+                                </span>
+                                <span className="flex-1 truncate text-xs text-neutral-400">
+                                  {cue.text}
+                                </span>
+                                {hasCustomStyle && (
+                                  <span className="shrink-0 rounded bg-green-500/20 px-1.5 py-0.5 text-[10px] text-green-400">
+                                    已设置
+                                  </span>
+                                )}
+                              </div>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setExpandedCueId(isExpanded ? null : cue.id)}
+                              className="shrink-0 text-neutral-500 hover:text-neutral-300"
+                            >
+                              <svg
+                                className={`h-4 w-4 transition-transform ${isExpanded ? "rotate-180" : ""}`}
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                              </svg>
+                            </button>
+                          </div>
+
+                          {isExpanded && (
+                            <div className="border-t border-neutral-700 p-3 space-y-2">
+                              <label className="space-y-1">
+                                <div className="text-xs text-neutral-400">字体</div>
+                                <select
+                                  value={subtitleStyles[cue.id]?.fontFamily || ""}
+                                  onChange={(event) => updateSubtitleStyle(cue.id, "fontFamily", event.target.value || undefined)}
+                                  className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-xs text-neutral-100 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+                                >
+                                  <option value="">默认</option>
+                                  {fontFamilyOptions.map((font) => (
+                                    <option key={font.id} value={font.value}>
+                                      {font.label}
+                                    </option>
+                                  ))}
+                                </select>
+                              </label>
+                              <label className="space-y-1">
+                                <div className="text-xs text-neutral-400">字号 (px)</div>
+                                <input
+                                  type="number"
+                                  min={24}
+                                  max={200}
+                                  step={2}
+                                  placeholder="72"
+                                  value={subtitleStyles[cue.id]?.fontSize || ""}
+                                  onChange={(event) => updateSubtitleStyle(cue.id, "fontSize", event.target.value ? Number(event.target.value) : undefined)}
+                                  className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-xs text-neutral-100 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+                                />
+                              </label>
+                              <label className="space-y-1">
+                                <div className="text-xs text-neutral-400">进入动画</div>
+                                <select
+                                  value={subtitleStyles[cue.id]?.animation || ""}
+                                  onChange={(event) => updateSubtitleStyle(cue.id, "animation", (event.target.value as EnterAnimationName) || undefined)}
+                                  className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-xs text-neutral-100 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+                                >
+                                  <option value="">随机</option>
+                                  {enterAnimationOptions.map((anim) => (
+                                    <option key={anim.id} value={anim.id}>
+                                      {anim.label}
+                                    </option>
+                                  ))}
+                                </select>
+                              </label>
+                              <button
+                                type="button"
+                                onClick={() => setSubtitleStyles((prev) => {
+                                  const updated = { ...prev };
+                                  delete updated[cue.id];
+                                  return updated;
+                                })}
+                                className="w-full rounded-md bg-neutral-700 px-2 py-1.5 text-xs text-neutral-300 transition-colors hover:bg-neutral-600"
+                              >
+                                重置此条
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             </div>
