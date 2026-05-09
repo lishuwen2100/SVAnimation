@@ -2,9 +2,10 @@ import { useState } from "react";
 import { DuckSubtitle } from "./modules/DuckSubtitle";
 import { WorkflowList } from "./components/WorkflowList";
 import { WorkflowEditor } from "./components/WorkflowEditor";
+import { UnifiedPlayer } from "./components/UnifiedPlayer";
 import { useWorkflow } from "./contexts/WorkflowContext";
 
-type ModuleId = "home" | "duck-subtitle" | "workflow-list" | "workflow-editor";
+type ModuleId = "home" | "duck-subtitle" | "workflow-list" | "workflow-editor" | "unified-player";
 
 type ModuleCard = {
   id: ModuleId;
@@ -65,10 +66,15 @@ export default function App() {
     return (
       <WorkflowEditor
         onBack={() => setCurrentModule("workflow-list")}
-        onPreview={() => {
-          // TODO: Phase 4 - 实现统一播放器
-          alert("统一播放器将在 Phase 4 实现");
-        }}
+        onPreview={() => setCurrentModule("unified-player")}
+      />
+    );
+  }
+
+  if (currentModule === "unified-player") {
+    return (
+      <UnifiedPlayer
+        onBack={() => setCurrentModule("workflow-editor")}
       />
     );
   }

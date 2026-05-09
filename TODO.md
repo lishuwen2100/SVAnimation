@@ -56,15 +56,16 @@
 
 ---
 
-## Phase 4: 统一播放器
+## Phase 4: 统一播放器 ✅
 
 **目标**：实现 Series 集成和连续播放
 
-- [ ] 17. 创建 `UnifiedPlayer.tsx`（Series 集成）
-- [ ] 18. 实现 `UnifiedComposition`（顶层 Composition）
-- [ ] 19. 创建 `Timeline.tsx`（时间轴组件 + 节点边界显示）
-- [ ] 20. 实现节点跳转功能（控制 Player currentFrame）
-- [ ] 21. 实现时长计算逻辑
+- [x] 17. 创建 `UnifiedPlayer.tsx`（Series 集成）
+- [x] 18. 实现 `UnifiedComposition`（顶层 Composition）
+- [x] 19. 创建 `Timeline.tsx`（时间轴组件 + 节点边界显示）
+- [x] 20. 时长计算已在 WorkflowContext 实现
+- [x] 21. 集成到 App.tsx 导航流程
+- [ ] 21.1. 节点跳转功能（后续优化）
 
 **验证点**：
 - 多个节点顺序播放
