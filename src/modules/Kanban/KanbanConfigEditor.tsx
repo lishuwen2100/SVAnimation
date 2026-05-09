@@ -1,6 +1,6 @@
 // Kanban 模块配置编辑器
 
-import { useRef, useEffect } from "react";
+import { useRef, useState } from "react";
 import type { KanbanConfig } from "@/types/workflow";
 import { Player } from "@remotion/player";
 import { KanbanComposition } from "./KanbanComposition";
@@ -23,18 +23,9 @@ export function KanbanConfigEditor({
   onFinish,
 }: KanbanConfigEditorProps) {
   const videoInputRef = useRef<HTMLInputElement>(null);
-  const previousVideoUrlRef = useRef<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
-  // 清理旧的 Blob URL
-  useEffect(() => {
-    return () => {
-      if (previousVideoUrlRef.current && previousVideoUrlRef.current.startsWith("blob:")) {
-        URL.revokeObjectURL(previousVideoUrlRef.current);
-      }
-    };
-  }, []);
-
-  const handleVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -43,26 +34,54 @@ export function KanbanConfigEditor({
       return;
     }
 
-    // 释放之前的 Blob URL
-    if (previousVideoUrlRef.current && previousVideoUrlRef.current.startsWith("blob:")) {
-      URL.revokeObjectURL(previousVideoUrlRef.current);
+    // 检查文件大小（建议不超过 50MB）
+    const maxSize = 50 * 1024 * 1024; // 50MB
+    if (file.size > maxSize) {
+      alert("视频文件过大（超过 50MB），请选择较小的文件");
+      return;
     }
 
-    // 创建新的 Blob URL
-    const url = URL.createObjectURL(file);
-    previousVideoUrlRef.current = url;
+    setIsUploading(true);
 
-    const videoElement = document.createElement("video");
-    videoElement.src = url;
+    try {
+      // 将文件转换为 Base64 Data URL（可持久化）
+      const reader = new FileReader();
 
-    videoElement.onloadedmetadata = () => {
-      const duration = videoElement.duration;
-      onChange({
-        ...config,
-        videoSrc: url,
-        videoDuration: duration,
-      });
-    };
+      reader.onload = (event) => {
+        const dataUrl = event.target?.result as string;
+
+        // 使用视频元素获取时长
+        const videoElement = document.createElement("video");
+        videoElement.src = dataUrl;
+
+        videoElement.onloadedmetadata = () => {
+          const duration = videoElement.duration;
+          onChange({
+            ...config,
+            videoSrc: dataUrl, // 保存 Base64 Data URL
+            videoDuration: duration,
+            videoSize: file.size,
+          });
+          setIsUploading(false);
+        };
+
+        videoElement.onerror = () => {
+          alert("视频加载失败，请检查文件格式");
+          setIsUploading(false);
+        };
+      };
+
+      reader.onerror = () => {
+        alert("文件读取失败");
+        setIsUploading(false);
+      };
+
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error("Video upload error:", error);
+      alert("视频上传失败");
+      setIsUploading(false);
+    }
   };
 
   const handleResolutionChange = (resId: string) => {
@@ -120,28 +139,61 @@ export function KanbanConfigEditor({
               />
               <button
                 onClick={() => videoInputRef.current?.click()}
-                className="w-full rounded-lg border border-cyan-500/30 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 px-4 py-3 font-semibold text-cyan-300 transition-all hover:border-cyan-500/50 active:scale-95"
+                disabled={isUploading}
+                className="w-full rounded-lg border border-cyan-500/30 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 px-4 py-3 font-semibold text-cyan-300 transition-all hover:border-cyan-500/50 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <div className="flex items-center justify-center gap-2">
-                  <svg
-                    className="h-5 w-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                    />
-                  </svg>
-                  {config.videoSrc ? "重新上传 MP4" : "上传 MP4 视频"}
+                  {isUploading ? (
+                    <>
+                      <svg
+                        className="h-5 w-5 animate-spin"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        />
+                      </svg>
+                      上传中...
+                    </>
+                  ) : (
+                    <>
+                      <svg
+                        className="h-5 w-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                        />
+                      </svg>
+                      {config.videoSrc ? "重新上传 MP4" : "上传 MP4 视频"}
+                    </>
+                  )}
                 </div>
               </button>
               {config.videoSrc && (
-                <div className="mt-3 text-sm text-neutral-400">
+                <div className="mt-3 space-y-1 text-sm text-neutral-400">
                   <div>时长: {config.videoDuration.toFixed(2)} 秒</div>
+                  {config.videoSize && (
+                    <div>
+                      大小: {(config.videoSize / (1024 * 1024)).toFixed(2)} MB
+                    </div>
+                  )}
                 </div>
               )}
             </section>

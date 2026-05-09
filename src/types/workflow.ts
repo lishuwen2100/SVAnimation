@@ -122,6 +122,7 @@ export interface DuckSubtitleConfig {
 export interface KanbanConfig {
   videoSrc: string | null;
   videoDuration: number;
+  videoSize?: number; // 文件大小（字节）
   resolution: {
     id: string;
     width: number;
