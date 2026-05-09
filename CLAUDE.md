@@ -11,7 +11,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Key Documents:**
 - `DESIGN.md` - Complete design documentation, UI specs, and technical architecture
 - `README.md` - Project overview, setup instructions, and module catalog
-- `USAGE.md` - End-user operation guide
+- `docs/usage.md` - End-user operation guide
+- `docs/workflow-editor.md` - Workflow system architecture and implementation
 
 ## Commands
 

@@ -57,50 +57,31 @@ npm run preview
 
 持续开发中...
 
-## 项目结构
+## 文档
 
-```
-src/
-├── App.tsx              # 主界面和模块导航
-├── modules/             # 特效模块目录
-│   └── DuckSubtitle.tsx # 倒鸭子字幕模块
-├── utils/               # 工具函数
-├── main.tsx             # 应用入口
-└── index.css            # 全局样式
-```
+### 用户文档
+- **[使用指南](docs/usage.md)** - 详细的用户操作指南
+- **[功能模块](docs/)** - 各模块的功能说明
 
-## 开发指南
+### 开发文档
+- **[工作流编辑器](docs/workflow-editor.md)** - 工作流系统架构
+- **[设计文档](DESIGN.md)** - 完整的设计规范
+- **[开发指南](CLAUDE.md)** - Claude Code 开发指南
 
-### 添加新模块
+### 模块文档
+- **[看板模块](docs/kanban-module.md)** - 视频字幕编辑器
+- **[字幕功能](docs/kanban-subtitle-feature.md)** - 字幕系统文档
+- **[字幕切换](docs/kanban-subtitle-switch-feature.md)** - 文字切换功能
+- **[翻转动画](docs/kanban-subtitle-flip-animation.md)** - 3D 翻转效果
 
-1. 在 `src/modules/` 创建新模块文件
-2. 导出命名组件（如 `export function YourModule()`）
-3. 在 `src/App.tsx` 中导入模块
-4. 添加模块卡片到 `modules` 数组
-5. 添加导航逻辑
+### 技术文档
+- **[IndexedDB 实现](docs/kanban-indexeddb-implementation.md)** - 视频存储方案
+- **[模块演进](docs/kanban-module-evolution.md)** - 开发历史
 
-示例：
-
-```typescript
-// src/modules/YourModule.tsx
-export function YourModule() {
-  return <div>Your module content</div>;
-}
-
-// src/App.tsx
-import { YourModule } from "./modules/YourModule";
-
-const modules = [
-  // ...
-  {
-    id: "your-module",
-    title: "你的模块",
-    description: "模块描述",
-    icon: "✨",
-    color: "from-blue-500/20 to-cyan-500/20 border-blue-500/30 hover:border-blue-500/60",
-  },
-];
-```
+### 计划文档
+- **[待办事项](docs/todo.md)** - 当前任务列表
+- **[未来规划](docs/future-plans.md)** - 功能路线图
+- **[Bug 修复](docs/bugfix-summary.md)** - 修复记录
 
 ## 许可证
 
