@@ -11,9 +11,14 @@
  *   node scripts/export-workflow.js workflow-export.json output.mp4 --width=1920 --height=1080 --fps=60
  */
 
-const { execSync } = require('child_process');
-const fs = require('fs');
-const path = require('path');
+import { execSync } from 'child_process';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// ES 模块中获取 __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // 解析命令行参数
 const args = process.argv.slice(2);
@@ -29,22 +34,36 @@ args.slice(2).forEach(arg => {
   }
 });
 
-// 验证参数
-if (!workflowJsonPath) {
-  console.error('❌ 错误: 缺少工作流配置文件参数');
-  console.error('');
-  console.error('使用方法:');
-  console.error('  node scripts/export-workflow.js <workflow.json> [output.mp4]');
-  console.error('');
-  console.error('示例:');
-  console.error('  node scripts/export-workflow.js workflow-export.json output.mp4');
-  console.error('  node scripts/export-workflow.js workflow-export.json video.mp4 --fps=60');
-  process.exit(1);
+// 显示帮助信息
+if (!workflowJsonPath || workflowJsonPath === '--help' || workflowJsonPath === '-h') {
+  console.log('');
+  console.log('📹 SVAnimation 视频导出工具');
+  console.log('');
+  console.log('使用方法:');
+  console.log('  node scripts/export-workflow.js <workflow.json> [output.mp4] [options]');
+  console.log('');
+  console.log('参数:');
+  console.log('  workflow.json  工作流配置文件（必需）');
+  console.log('  output.mp4     输出文件名（可选，默认 output.mp4）');
+  console.log('');
+  console.log('选项:');
+  console.log('  --width=<数字>   视频宽度（默认：1920）');
+  console.log('  --height=<数字>  视频高度（默认：1080）');
+  console.log('  --fps=<数字>     帧率（默认：30）');
+  console.log('');
+  console.log('示例:');
+  console.log('  node scripts/export-workflow.js workflow-export.json output.mp4');
+  console.log('  node scripts/export-workflow.js workflow-export.json video.mp4 --fps=60');
+  console.log('  node scripts/export-workflow.js workflow-export.json hd.mp4 --width=1280 --height=720');
+  console.log('');
+  process.exit(0);
 }
 
 // 验证工作流文件
 if (!fs.existsSync(workflowJsonPath)) {
   console.error(`❌ 错误: 工作流文件不存在: ${workflowJsonPath}`);
+  console.error('');
+  console.error('提示: 使用 --help 查看使用方法');
   process.exit(1);
 }
 
