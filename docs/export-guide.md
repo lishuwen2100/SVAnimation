@@ -209,6 +209,17 @@ ffmpeg -i output.mp4 -vf "scale=640:-1" output.gif
 2. **降低分辨率**：720p 文件大小约为 1080p 的 50%
 3. **降低帧率**：30 FPS 文件大小约为 60 FPS 的 50%
 
+## macOS 兼容性
+
+⚠️ **重要提示**: macOS 15 (Sequoia) 以下的系统可能遇到音频合成失败的问题。
+
+**常见错误**:
+```
+Error: Symbol not found: (_AVCaptureDeviceTypeContinuityCamera)
+```
+
+**解决方案**: 详见 [macOS 兼容性说明](macos-compatibility.md)
+
 ## 故障排除
 
 ### 错误：找不到工作流文件
