@@ -6,9 +6,13 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "export": "node scripts/export-workflow.js",
+    "export:help": "echo 'Usage: npm run export <workflow.json> [output.mp4]'"
   },
   "dependencies": {
+    "@remotion/bundler": "^4.0.459",
+    "@remotion/cli": "^4.0.459",
     "@remotion/player": "^4.0.457",
     "clsx": "2.1.1",
     "react": "19.2.3",

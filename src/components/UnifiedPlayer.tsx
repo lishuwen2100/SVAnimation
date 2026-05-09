@@ -1,10 +1,11 @@
 // 统一播放器（Series 集成）
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Player } from "@remotion/player";
 import { AbsoluteFill, Series, Audio } from "remotion";
 import { useWorkflow } from "@/contexts/WorkflowContext";
 import { Timeline } from "./Timeline";
+import { ExportDialog } from "./ExportDialog";
 import { FPS } from "@/modules/DuckSubtitle/utils";
 
 /**
@@ -41,6 +42,7 @@ export interface UnifiedPlayerProps {
 
 export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({ onBack }) => {
   const { currentWorkflow, computeTimeline } = useWorkflow();
+  const [showExportDialog, setShowExportDialog] = useState(false);
 
   const timeline = useMemo(() => computeTimeline(FPS), [computeTimeline]);
 
@@ -164,25 +166,34 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({ onBack }) => {
               fps={FPS}
             />
 
-            {/* 导出按钮（占位） */}
+            {/* 导出按钮 */}
             <div className="rounded-lg border border-neutral-800 bg-neutral-900/50 p-6 backdrop-blur-sm">
               <h3 className="mb-3 text-sm font-semibold text-neutral-300">导出视频</h3>
               <p className="mb-4 text-sm text-neutral-400">
-                导出功能将在 Phase 6 实现，届时可使用 Remotion CLI 或 render API 生成最终视频。
+                生成导出命令，使用 Remotion CLI 渲染最终视频文件。支持 5-10 分钟长视频。
               </p>
               <button
-                disabled
-                className="inline-flex items-center gap-2 rounded-lg bg-neutral-800 px-4 py-2 text-sm font-medium text-neutral-500 opacity-50 cursor-not-allowed"
+                onClick={() => setShowExportDialog(true)}
+                className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 px-4 py-2 text-sm font-medium text-white transition-all hover:from-purple-600 hover:to-pink-600"
               >
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
-                <span>导出 MP4（即将推出）</span>
+                <span>📤 导出视频</span>
               </button>
             </div>
           </>
         )}
       </div>
+
+      {/* 导出对话框 */}
+      {showExportDialog && currentWorkflow && (
+        <ExportDialog
+          workflow={currentWorkflow}
+          timeline={timeline}
+          onClose={() => setShowExportDialog(false)}
+        />
+      )}
     </div>
   );
 };

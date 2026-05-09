@@ -82,6 +82,7 @@ npm run preview
 - **[待办事项](docs/todo.md)** - 当前任务列表
 - **[未来规划](docs/future-plans.md)** - 功能路线图
 - **[Bug 修复](docs/bugfix-summary.md)** - 修复记录
+- **[导出指南](docs/export-guide.md)** - 视频导出使用文档
 
 ## 许可证
 
