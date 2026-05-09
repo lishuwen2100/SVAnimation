@@ -1,0 +1,84 @@
+{
+  "workflow": {
+    "id": "1778316174538-yemkvw8",
+    "name": "工作流 1",
+    "nodes": [
+      {
+        "id": "1778316202167-funlgds",
+        "type": "kanban",
+        "name": "看板 1",
+        "order": 0,
+        "enabled": true,
+        "config": {
+          "videoDuration": 175.310997,
+          "resolution": {
+            "id": "720p",
+            "width": 1280,
+            "height": 720,
+            "label": "1280 x 720 (HD)"
+          },
+          "subtitles": [
+            {
+              "id": "subtitle-1778316783456",
+              "text": "LOOP 1",
+              "enterTime": 0,
+              "exitTime": 0,
+              "fontSize": 96,
+              "color": "#FFFFFF",
+              "position": {
+                "x": 593,
+                "y": 357
+              },
+              "animation": "side-skew",
+              "scale": {
+                "enabled": true,
+                "fontSize": 48,
+                "position": {
+                  "x": 14,
+                  "y": 13
+                },
+                "delay": 1
+              },
+              "switch": {
+                "enabled": true,
+                "items": [
+                  {
+                    "id": "switch-1778319207462",
+                    "text": "LOOP 2",
+                    "time": 24.533333333333335
+                  },
+                  {
+                    "id": "switch-1778319219480",
+                    "text": "LOOP 3",
+                    "time": 46.43333333333333
+                  },
+                  {
+                    "id": "switch-1778319241823",
+                    "text": "LOOP 4",
+                    "time": 99.26666666666667
+                  },
+                  {
+                    "id": "switch-1778319252431",
+                    "text": "LOOP 5",
+                    "time": 136.16666666666666
+                  }
+                ]
+              }
+            }
+          ],
+          "videoFileName": "CC101#1 What-is-Claude-Code.mp4",
+          "videoSize": 15847937,
+          "videoSrc": "./videos/CC101#1 What-is-Claude-Code.mp4"
+        },
+        "createdAt": 1778316202167,
+        "updatedAt": 1778319261581
+      }
+    ],
+    "createdAt": 1778316174538,
+    "updatedAt": 1778319261581
+  },
+  "width": 1920,
+  "height": 1080,
+  "fps": 30,
+  "exportedAt": "2026-05-09T09:35:12.745Z"
+}

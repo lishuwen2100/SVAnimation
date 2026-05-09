@@ -31,6 +31,8 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
     outputName: "output.mp4",
   });
 
+  const [muted, setMuted] = useState(false);
+
   const [exportCommand, setExportCommand] = useState<string>("");
   const [videos, setVideos] = useState<VideoInfo[]>([]);
   const [isExporting, setIsExporting] = useState(false);
@@ -72,7 +74,10 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
       downloadWorkflowJson(preparedWorkflow, options, jsonFileName);
 
       // 5. 生成命令
-      const command = generateExportCommand(workflow.name, options);
+      let command = generateExportCommand(workflow.name, options);
+      if (muted) {
+        command += " -- --muted";
+      }
       setExportCommand(command);
     } catch (error) {
       console.error("Export preparation failed:", error);
@@ -184,6 +189,24 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
                 className="w-full rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-neutral-100 focus:border-purple-500 focus:outline-none"
                 placeholder="output.mp4"
               />
+            </div>
+
+            {/* 静音选项 */}
+            <div>
+              <label className="flex items-center gap-2 text-sm text-neutral-400">
+                <input
+                  type="checkbox"
+                  checked={muted}
+                  onChange={(e) => setMuted(e.target.checked)}
+                  className="rounded border-neutral-700 bg-neutral-800 text-purple-500 focus:ring-purple-500"
+                />
+                <span>静音导出（推荐 macOS 15 以下用户使用）</span>
+              </label>
+              {muted && (
+                <p className="mt-1 text-xs text-yellow-400">
+                  💡 将生成无音频的视频，可后期使用视频编辑软件添加音频
+                </p>
+              )}
             </div>
 
             {/* 统计信息 */}

@@ -105,8 +105,14 @@ const propsData = JSON.stringify({
   height: parseInt(height)
 });
 
+// 构建额外的 Remotion 选项
+const remotionOptions = [];
+if (options.muted !== undefined) {
+  remotionOptions.push('--muted');
+}
+
 // 调用 Remotion CLI
-const renderCommand = `npx remotion render src/render/RenderEntry.tsx workflow-output "${outputPath}" --props='${propsData}'`;
+const renderCommand = `npx remotion render src/render/RenderEntry.tsx workflow-output "${outputPath}" --props='${propsData}' ${remotionOptions.join(' ')}`;
 
 try {
   execSync(renderCommand, { stdio: 'inherit' });
