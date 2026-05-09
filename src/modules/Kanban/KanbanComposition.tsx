@@ -1,6 +1,6 @@
 // Kanban 模块 Remotion Composition 组件
 
-import { Video } from "remotion";
+import { OffthreadVideo } from "remotion";
 
 export interface KanbanCompositionProps {
   videoSrc: string | null;
@@ -42,7 +42,7 @@ export function KanbanComposition({
         backgroundColor: "#000",
       }}
     >
-      <Video
+      <OffthreadVideo
         src={videoSrc}
         style={{
           width: "100%",

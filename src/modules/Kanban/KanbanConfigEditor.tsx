@@ -1,6 +1,6 @@
 // Kanban 模块配置编辑器
 
-import { useRef } from "react";
+import { useRef, useEffect } from "react";
 import type { KanbanConfig } from "@/types/workflow";
 import { Player } from "@remotion/player";
 import { KanbanComposition } from "./KanbanComposition";
@@ -23,6 +23,16 @@ export function KanbanConfigEditor({
   onFinish,
 }: KanbanConfigEditorProps) {
   const videoInputRef = useRef<HTMLInputElement>(null);
+  const previousVideoUrlRef = useRef<string | null>(null);
+
+  // 清理旧的 Blob URL
+  useEffect(() => {
+    return () => {
+      if (previousVideoUrlRef.current && previousVideoUrlRef.current.startsWith("blob:")) {
+        URL.revokeObjectURL(previousVideoUrlRef.current);
+      }
+    };
+  }, []);
 
   const handleVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -33,7 +43,15 @@ export function KanbanConfigEditor({
       return;
     }
 
+    // 释放之前的 Blob URL
+    if (previousVideoUrlRef.current && previousVideoUrlRef.current.startsWith("blob:")) {
+      URL.revokeObjectURL(previousVideoUrlRef.current);
+    }
+
+    // 创建新的 Blob URL
     const url = URL.createObjectURL(file);
+    previousVideoUrlRef.current = url;
+
     const videoElement = document.createElement("video");
     videoElement.src = url;
 
@@ -44,7 +62,6 @@ export function KanbanConfigEditor({
         videoSrc: url,
         videoDuration: duration,
       });
-      URL.revokeObjectURL(url);
     };
   };
 
