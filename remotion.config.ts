@@ -1,10 +1,5 @@
 import { Config } from "@remotion/cli/config";
-import path from "path";
-import { fileURLToPath } from "url";
-
-// ES 模块中获取 __dirname
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import { resolve } from "path";
 
 // 设置视频帧格式为 JPEG（性能更好）
 Config.setVideoImageFormat("jpeg");
@@ -23,7 +18,7 @@ Config.overrideWebpackConfig((config) => {
       ...config.resolve,
       alias: {
         ...config.resolve?.alias,
-        "@": path.resolve(__dirname, "src"),
+        "@": resolve(process.cwd(), "src"),
       },
     },
   };
