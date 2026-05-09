@@ -1,7 +1,10 @@
 import { useState } from "react";
 import { DuckSubtitle } from "./modules/DuckSubtitle";
+import { WorkflowList } from "./components/WorkflowList";
+import { WorkflowEditor } from "./components/WorkflowEditor";
+import { useWorkflow } from "./contexts/WorkflowContext";
 
-type ModuleId = "home" | "duck-subtitle";
+type ModuleId = "home" | "duck-subtitle" | "workflow-list" | "workflow-editor";
 
 type ModuleCard = {
   id: ModuleId;
@@ -23,6 +26,7 @@ const modules: ModuleCard[] = [
 
 export default function App() {
   const [currentModule, setCurrentModule] = useState<ModuleId>("home");
+  const { selectWorkflow } = useWorkflow();
 
   if (currentModule === "duck-subtitle") {
     return (
@@ -42,6 +46,30 @@ export default function App() {
         </header>
         <DuckSubtitle />
       </div>
+    );
+  }
+
+  if (currentModule === "workflow-list") {
+    return (
+      <WorkflowList
+        onSelectWorkflow={(id) => {
+          selectWorkflow(id);
+          setCurrentModule("workflow-editor");
+        }}
+        onBack={() => setCurrentModule("home")}
+      />
+    );
+  }
+
+  if (currentModule === "workflow-editor") {
+    return (
+      <WorkflowEditor
+        onBack={() => setCurrentModule("workflow-list")}
+        onPreview={() => {
+          // TODO: Phase 4 - 实现统一播放器
+          alert("统一播放器将在 Phase 4 实现");
+        }}
+      />
     );
   }
 
@@ -65,6 +93,28 @@ export default function App() {
             选择一个特效模块
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <button
+              onClick={() => setCurrentModule("workflow-list")}
+              className="group relative overflow-hidden border border-purple-500/30 bg-gradient-to-br from-purple-500/20 to-pink-500/20 p-6 text-left transition-all hover:scale-[1.02] active:scale-[0.98]"
+            >
+              <div className="relative z-10 space-y-4">
+                <div className="text-5xl">🎬</div>
+                <div className="space-y-2">
+                  <h3 className="text-xl font-bold text-neutral-100">
+                    工作流编辑器
+                  </h3>
+                  <p className="text-sm text-neutral-400 leading-relaxed">
+                    组合多个模块创建复杂视频，顺序播放和导出
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-neutral-500 group-hover:text-neutral-400 transition-colors">
+                  <span>进入工作流</span>
+                  <span className="group-hover:translate-x-1 transition-transform">→</span>
+                </div>
+              </div>
+              <div className="absolute inset-0 bg-gradient-to-br from-white/0 to-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </button>
+
             {modules.map((module) => (
               <button
                 key={module.id}

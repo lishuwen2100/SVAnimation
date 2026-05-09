@@ -36,16 +36,17 @@
 
 ---
 
-## Phase 3: 工作流编辑器 UI
+## Phase 3: 工作流编辑器 UI ✅
 
 **目标**：实现节点列表和配置界面
 
-- [ ] 11. 创建 `WorkflowList.tsx`（工作流列表页）
-- [ ] 12. 创建 `WorkflowEditor.tsx`（工作流编辑主界面）
-- [ ] 13. 创建 `NodeList.tsx`（节点列表 + 拖拽排序）
-- [ ] 14. 创建 `NodeCard.tsx`（单个节点卡片组件）
-- [ ] 15. 创建 `NodeConfigModal.tsx`（全屏配置模态框）
-- [ ] 16. 实现原生拖拽排序（Pointer Events API）
+- [x] 11. 创建 `WorkflowList.tsx`（工作流列表页）
+- [x] 12. 创建 `WorkflowEditor.tsx`（工作流编辑主界面）
+- [x] 13. NodeCard.tsx 已包含在 WorkflowEditor 中
+- [x] 14. 创建 `NodeCard.tsx`（单个节点卡片组件）
+- [x] 15. 配置模态框已集成在 WorkflowEditor 中
+- [x] 16. 集成到 App.tsx 主导航
+- [ ] 16.1. 实现拖拽排序（后续优化）
 
 **验证点**：
 - 可添加/删除/重命名节点
