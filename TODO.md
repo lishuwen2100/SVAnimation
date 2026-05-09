@@ -17,16 +17,17 @@
 
 ---
 
-## Phase 2: 拆分 DuckSubtitle ⏳
+## Phase 2: 拆分 DuckSubtitle ✅
 
 **目标**：将 DuckSubtitle 改造为可复用的工作流节点
 
 - [x] 6. 创建 `/src/modules/DuckSubtitle/` 目录结构
 - [x] 7. 提取 `DuckSubtitleComposition.tsx`（包含 SubtitleComposition 及依赖函数）
 - [x] 7.1. 提取 `utils.ts`（共享工具函数和常量）
-- [ ] 8. 改造 `DuckSubtitleConfigEditor.tsx`（状态管理改为 props 驱动）
-- [ ] 9. 创建 `/src/registry/modules/duckSubtitle.tsx` 注册文件
-- [ ] 10. 保留原有 `/src/modules/DuckSubtitle.tsx` 作为向后兼容入口
+- [x] 8. 改造 `DuckSubtitleConfigEditor.tsx`（状态管理改为 props 驱动）
+- [x] 9. 创建 `/src/registry/modules/duckSubtitle.tsx` 注册文件
+- [x] 10. 保留原有 `/src/modules/DuckSubtitle.tsx` 作为向后兼容入口
+- [x] 10.1. 创建 `/src/registry/index.ts` 模块初始化文件
 
 **验证点**：
 - 单模块模式仍可正常使用
