@@ -138,6 +138,23 @@ export interface KanbanSubtitleScale {
 }
 
 /**
+ * 看板字幕切换项
+ */
+export interface KanbanSubtitleSwitchItem {
+  id: string; // 唯一标识
+  text: string; // 文字内容
+  time: number; // 出现时间（秒）
+}
+
+/**
+ * 看板字幕切换配置
+ */
+export interface KanbanSubtitleSwitch {
+  enabled: boolean;
+  items: KanbanSubtitleSwitchItem[]; // 切换文字列表
+}
+
+/**
  * 看板字幕配置
  */
 export interface KanbanSubtitle {
@@ -150,6 +167,7 @@ export interface KanbanSubtitle {
   position: { x: number; y: number }; // 坐标（像素）
   animation: KanbanSubtitleAnimation; // 进入动画
   scale: KanbanSubtitleScale; // 缩放配置
+  switch: KanbanSubtitleSwitch; // 切换配置
 }
 
 /**

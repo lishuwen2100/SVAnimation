@@ -22,6 +22,19 @@ export function SubtitleRenderer({ subtitle, fps }: SubtitleRendererProps) {
     return null;
   }
 
+  // 计算当前应该显示的文字内容（切换功能）
+  let displayText = subtitle.text;
+  if (subtitle.switch.enabled && subtitle.switch.items.length > 0) {
+    // 找到最近的已经到达时间点的切换项
+    const validItems = subtitle.switch.items
+      .filter((item) => currentTime >= item.time)
+      .sort((a, b) => b.time - a.time); // 按时间降序排列
+
+    if (validItems.length > 0) {
+      displayText = validItems[0].text; // 使用最新的切换文字
+    }
+  }
+
   // 计算相对帧（从进入时间开始）
   const relativeFrame = Math.max(0, frame - subtitle.enterTime * fps);
 
@@ -120,7 +133,7 @@ export function SubtitleRenderer({ subtitle, fps }: SubtitleRendererProps) {
         lineHeight: 1.2,
       }}
     >
-      {subtitle.text}
+      {displayText}
     </div>
   );
 }

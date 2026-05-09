@@ -328,6 +328,155 @@ export function SubtitleConfigPanel({
         )}
       </div>
 
+      {/* 切换设置 */}
+      <div className="border-t border-neutral-700 pt-4">
+        <div className="flex items-center justify-between mb-3">
+          <label className="text-xs font-medium text-neutral-400">
+            文字切换
+          </label>
+          <button
+            onClick={() =>
+              onUpdate({
+                switch: { ...subtitle.switch, enabled: !subtitle.switch.enabled },
+              })
+            }
+            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+              subtitle.switch.enabled ? "bg-green-500" : "bg-neutral-700"
+            }`}
+          >
+            <span
+              className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
+                subtitle.switch.enabled ? "translate-x-5" : "translate-x-1"
+              }`}
+            />
+          </button>
+        </div>
+
+        {subtitle.switch.enabled && (
+          <div className="space-y-3 pl-2 border-l-2 border-green-500/30">
+            {/* 切换文字列表 */}
+            <div className="space-y-2">
+              {subtitle.switch.items.map((item, index) => (
+                <div
+                  key={item.id}
+                  className="rounded-lg border border-neutral-700 bg-neutral-800/50 p-2 space-y-2"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-neutral-400">
+                      文字 {index + 1}
+                    </span>
+                    <button
+                      onClick={() => {
+                        onUpdate({
+                          switch: {
+                            ...subtitle.switch,
+                            items: subtitle.switch.items.filter((i) => i.id !== item.id),
+                          },
+                        });
+                      }}
+                      className="text-xs text-red-400 hover:text-red-300"
+                    >
+                      删除
+                    </button>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-neutral-400 mb-1">
+                      文字内容
+                    </label>
+                    <input
+                      type="text"
+                      value={item.text}
+                      onChange={(e) => {
+                        onUpdate({
+                          switch: {
+                            ...subtitle.switch,
+                            items: subtitle.switch.items.map((i) =>
+                              i.id === item.id ? { ...i, text: e.target.value } : i
+                            ),
+                          },
+                        });
+                      }}
+                      className="w-full rounded border border-neutral-700 bg-neutral-800 px-2 py-1 text-xs text-neutral-200 focus:border-green-500 focus:outline-none"
+                      placeholder="输入文字..."
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-neutral-400 mb-1">
+                      出现时间 (秒)
+                    </label>
+                    <div className="flex gap-1">
+                      <input
+                        type="number"
+                        value={item.time.toFixed(2)}
+                        onChange={(e) => {
+                          onUpdate({
+                            switch: {
+                              ...subtitle.switch,
+                              items: subtitle.switch.items.map((i) =>
+                                i.id === item.id
+                                  ? { ...i, time: parseFloat(e.target.value) || 0 }
+                                  : i
+                              ),
+                            },
+                          });
+                        }}
+                        step="0.1"
+                        className="flex-1 rounded border border-neutral-700 bg-neutral-800 px-2 py-1 text-xs text-neutral-200 focus:border-green-500 focus:outline-none"
+                      />
+                      <button
+                        onClick={() => {
+                          const currentTime = onGetCurrentTime();
+                          onUpdate({
+                            switch: {
+                              ...subtitle.switch,
+                              items: subtitle.switch.items.map((i) =>
+                                i.id === item.id ? { ...i, time: currentTime } : i
+                              ),
+                            },
+                          });
+                        }}
+                        className="px-2 py-1 rounded border border-green-500/30 bg-green-500/10 text-xs text-green-400 hover:bg-green-500/20"
+                        title="获取当前时间"
+                      >
+                        当前
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {/* 添加切换文字按钮 */}
+              <button
+                onClick={() => {
+                  const newItem = {
+                    id: `switch-${Date.now()}`,
+                    text: "新文字",
+                    time: onGetCurrentTime(),
+                  };
+                  onUpdate({
+                    switch: {
+                      ...subtitle.switch,
+                      items: [...subtitle.switch.items, newItem],
+                    },
+                  });
+                }}
+                className="w-full rounded-lg border border-dashed border-neutral-600 bg-neutral-800/30 px-3 py-2 text-xs font-medium text-neutral-400 transition-all hover:border-green-500/50 hover:bg-neutral-800/50 hover:text-green-400"
+              >
+                + 添加切换文字
+              </button>
+            </div>
+
+            {subtitle.switch.items.length === 0 && (
+              <div className="text-xs text-neutral-500 text-center py-2">
+                暂无切换文字，点击上方按钮添加
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
       {/* 操作按钮 */}
       <div className="flex gap-2 pt-2">
         <button

@@ -171,6 +171,10 @@ export function KanbanConfigEditor({
         position: { x: 0, y: 0 },
         delay: 1,
       },
+      switch: {
+        enabled: false,
+        items: [],
+      },
     };
 
     onChange({
