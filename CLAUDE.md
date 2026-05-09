@@ -31,14 +31,19 @@ npm run preview  # Preview production build
 ## Architecture
 
 **Modular Structure:**
-- `src/App.tsx` - Main hub with module navigation
+- `src/App.tsx` - Main hub with workflow editor navigation
 - `src/modules/` - Self-contained effect modules
-  - `DuckSubtitle.tsx` - Duck subtitle animation (~1060 lines)
+  - `DuckSubtitle.tsx` - Duck subtitle animation
+  - `Kanban.tsx` - Video player module
+- `src/registry/` - Module registration system
+  - `moduleRegistry.ts` - Registry core
+  - `modules/` - Individual module definitions
 
-**Navigation Pattern:**
-- State: `currentModule` (`"home"` | `"duck-subtitle"` | ...)
-- Home shows module selection cards
-- Each module has a back button in header
+**Architecture Pattern:**
+- Workflow-based system with modular effects
+- Each module registers with `moduleRegistry`
+- Modules provide: Composition, ConfigEditor, defaultConfig, duration calculation
+- Unified player renders workflow as sequential compositions
 
 ## Path Aliases
 
@@ -86,13 +91,17 @@ ROTATE_FADE_PHASE = 0.45      // Fade starts at 45% of rotation
 
 ### Adding a New Effect Module
 
-1. Create `src/modules/YourModule.tsx` with exported named component
-2. Import in `src/App.tsx`
-3. Add to `modules[]` array with card config (id, title, description, icon, color)
-4. Add `ModuleId` type entry
-5. Add navigation case in render logic
+1. Add module type to `ModuleType` in `src/types/workflow.ts`
+2. Create config interface in `src/types/workflow.ts` (e.g., `YourModuleConfig`)
+3. Create module directory: `src/modules/YourModule/`
+   - `YourModuleComposition.tsx` - Remotion Composition component
+   - `YourModuleConfigEditor.tsx` - Configuration UI component
+4. Create `src/modules/YourModule.tsx` - Backward-compatible entry point
+5. Create module definition in `src/registry/modules/yourModule.tsx`
+6. Register module in `src/registry/index.ts` via `registerModule()`
+7. Module automatically appears in workflow editor
 
-See `DESIGN.md` for detailed architecture.
+See `docs/kanban-module.md` for complete example.
 
 ### Duck Subtitle: Adding Enter Animation
 

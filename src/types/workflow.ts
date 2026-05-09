@@ -3,7 +3,7 @@
 /**
  * 模块类型标识
  */
-export type ModuleType = "duck-subtitle" | "text-render" | "effects";
+export type ModuleType = "duck-subtitle" | "text-render" | "effects" | "kanban";
 
 /**
  * 工作流节点
@@ -114,4 +114,18 @@ export interface DuckSubtitleConfig {
     customPosition?: { x: number; y: number };
   }>;
   positionMode: "random" | "manual";
+}
+
+/**
+ * Kanban 模块配置
+ */
+export interface KanbanConfig {
+  videoSrc: string | null;
+  videoDuration: number;
+  resolution: {
+    id: string;
+    width: number;
+    height: number;
+    label: string;
+  };
 }
