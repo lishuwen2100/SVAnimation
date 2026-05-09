@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { KanbanComposition, type KanbanCompositionProps } from "./KanbanComposition";
 import { getVideoUrl } from "@/utils/videoStorage";
+import type { KanbanSubtitle } from "@/types/workflow";
 
 export interface KanbanCompositionWrapperProps {
   videoId: string | null;
@@ -10,11 +11,13 @@ export interface KanbanCompositionWrapperProps {
     width: number;
     height: number;
   };
+  subtitles?: KanbanSubtitle[];
 }
 
 export function KanbanCompositionWrapper({
   videoId,
   compositionSize,
+  subtitles = [],
 }: KanbanCompositionWrapperProps) {
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -74,6 +77,7 @@ export function KanbanCompositionWrapper({
     <KanbanComposition
       videoSrc={videoUrl}
       compositionSize={compositionSize}
+      subtitles={subtitles}
     />
   );
 }

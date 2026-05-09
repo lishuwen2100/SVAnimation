@@ -14,6 +14,7 @@ export function Kanban() {
       height: 720,
       label: "1280 x 720 (HD)",
     },
+    subtitles: [],
   });
 
   return (

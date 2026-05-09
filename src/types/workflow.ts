@@ -117,6 +117,42 @@ export interface DuckSubtitleConfig {
 }
 
 /**
+ * 看板字幕动画类型
+ */
+export type KanbanSubtitleAnimation =
+  | "none"
+  | "slam-bounce"
+  | "spin-scale"
+  | "side-skew"
+  | "pop-shake"
+  | "bounce-sway";
+
+/**
+ * 看板字幕缩放配置
+ */
+export interface KanbanSubtitleScale {
+  enabled: boolean;
+  fontSize: number;
+  position: { x: number; y: number };
+  delay: number; // 缩放延迟时间（秒）
+}
+
+/**
+ * 看板字幕配置
+ */
+export interface KanbanSubtitle {
+  id: string; // 唯一标识
+  text: string; // 字幕文本
+  enterTime: number; // 进入画面时间（秒）
+  exitTime: number; // 移出画面时间（秒，0 表示一直显示）
+  fontSize: number; // 字体大小
+  color: string; // 颜色（CSS 颜色值）
+  position: { x: number; y: number }; // 坐标（像素）
+  animation: KanbanSubtitleAnimation; // 进入动画
+  scale: KanbanSubtitleScale; // 缩放配置
+}
+
+/**
  * Kanban 模块配置
  */
 export interface KanbanConfig {
@@ -130,4 +166,5 @@ export interface KanbanConfig {
     height: number;
     label: string;
   };
+  subtitles: KanbanSubtitle[]; // 字幕列表
 }

@@ -1,6 +1,8 @@
 // Kanban 模块 Remotion Composition 组件
 
 import { OffthreadVideo } from "remotion";
+import type { KanbanSubtitle } from "@/types/workflow";
+import { SubtitleRenderer } from "./SubtitleRenderer";
 
 export interface KanbanCompositionProps {
   videoSrc: string | null;
@@ -8,11 +10,13 @@ export interface KanbanCompositionProps {
     width: number;
     height: number;
   };
+  subtitles?: KanbanSubtitle[];
 }
 
 export function KanbanComposition({
   videoSrc,
   compositionSize,
+  subtitles = [],
 }: KanbanCompositionProps) {
   if (!videoSrc) {
     return (
@@ -40,8 +44,10 @@ export function KanbanComposition({
         width: compositionSize.width,
         height: compositionSize.height,
         backgroundColor: "#000",
+        position: "relative",
       }}
     >
+      {/* 视频层 */}
       <OffthreadVideo
         src={videoSrc}
         style={{
@@ -50,6 +56,22 @@ export function KanbanComposition({
           objectFit: "contain",
         }}
       />
+
+      {/* 字幕层 */}
+      <div
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          width: compositionSize.width,
+          height: compositionSize.height,
+          pointerEvents: "none",
+        }}
+      >
+        {subtitles.map((subtitle) => (
+          <SubtitleRenderer key={subtitle.id} subtitle={subtitle} fps={30} />
+        ))}
+      </div>
     </div>
   );
 }
