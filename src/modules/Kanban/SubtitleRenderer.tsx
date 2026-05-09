@@ -24,14 +24,65 @@ export function SubtitleRenderer({ subtitle, fps }: SubtitleRendererProps) {
 
   // 计算当前应该显示的文字内容（切换功能）
   let displayText = subtitle.text;
-  if (subtitle.switch.enabled && subtitle.switch.items.length > 0) {
-    // 找到最近的已经到达时间点的切换项
-    const validItems = subtitle.switch.items
-      .filter((item) => currentTime >= item.time)
-      .sort((a, b) => b.time - a.time); // 按时间降序排列
+  let switchAnimation = { rotateY: 0 }; // 切换动画状态
 
-    if (validItems.length > 0) {
-      displayText = validItems[0].text; // 使用最新的切换文字
+  if (subtitle.switch.enabled && subtitle.switch.items.length > 0) {
+    // 将所有切换项按时间排序
+    const sortedItems = [...subtitle.switch.items].sort((a, b) => a.time - b.time);
+
+    // 找到当前应该显示的切换项
+    let currentSwitchIndex = -1;
+    for (let i = sortedItems.length - 1; i >= 0; i--) {
+      if (currentTime >= sortedItems[i].time) {
+        currentSwitchIndex = i;
+        break;
+      }
+    }
+
+    // 获取当前文字和前一个文字
+    let oldText = subtitle.text;
+    let newText = subtitle.text;
+
+    if (currentSwitchIndex >= 0) {
+      newText = sortedItems[currentSwitchIndex].text;
+      if (currentSwitchIndex > 0) {
+        oldText = sortedItems[currentSwitchIndex - 1].text;
+      }
+
+      // 计算切换动画（翻转效果）
+      const switchTime = sortedItems[currentSwitchIndex].time;
+      const timeSinceSwitch = currentTime - switchTime;
+      const switchDuration = 0.6; // 翻转动画持续 0.6 秒
+
+      if (timeSinceSwitch < switchDuration) {
+        // 在切换动画期间
+        const switchFrameOffset = Math.max(0, frame - switchTime * fps);
+
+        // 使用 spring 创建弹性翻转
+        const springValue = spring({
+          frame: switchFrameOffset,
+          fps,
+          config: {
+            damping: 15,
+            stiffness: 120,
+            mass: 0.8,
+          },
+        });
+
+        // 3D 旋转效果（Y 轴旋转 360 度）
+        switchAnimation.rotateY = interpolate(springValue, [0, 1], [0, 360]);
+
+        // 在旋转到 90-270 度时显示新文字（背面）
+        const rotateNormalized = switchAnimation.rotateY % 360;
+        if (rotateNormalized > 90 && rotateNormalized < 270) {
+          displayText = newText;
+        } else {
+          displayText = oldText;
+        }
+      } else {
+        // 动画完成，显示新文字
+        displayText = newText;
+      }
     }
   }
 
@@ -111,6 +162,7 @@ export function SubtitleRenderer({ subtitle, fps }: SubtitleRendererProps) {
   const finalOpacity = enterTransform.opacity * opacity;
   const finalTransform = `
     translate(${scaleTransform.x}px, ${scaleTransform.y}px)
+    rotateY(${switchAnimation.rotateY}deg)
     ${enterTransform.transform}
   `;
 
@@ -121,6 +173,7 @@ export function SubtitleRenderer({ subtitle, fps }: SubtitleRendererProps) {
         left: 0,
         top: 0,
         transform: finalTransform,
+        transformStyle: "preserve-3d", // 启用 3D 变换
         opacity: finalOpacity,
         color: subtitle.color,
         fontSize: `${scaleTransform.fontSize}px`,
@@ -131,6 +184,7 @@ export function SubtitleRenderer({ subtitle, fps }: SubtitleRendererProps) {
         `,
         whiteSpace: "pre-wrap",
         lineHeight: 1.2,
+        backfaceVisibility: "hidden", // 隐藏背面
       }}
     >
       {displayText}
