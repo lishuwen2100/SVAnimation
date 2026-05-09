@@ -1,7 +1,7 @@
 // Remotion 渲染入口文件
 // 用于 CLI 渲染，读取工作流配置并构建 Composition
 
-import { Composition } from "remotion";
+import { Composition, registerRoot } from "remotion";
 import { AbsoluteFill, Series } from "remotion";
 import type { Workflow, NodeTimelineEntry } from "@/types/workflow";
 import { getModule } from "@/registry/moduleRegistry";
@@ -71,47 +71,62 @@ const UnifiedComposition: React.FC<{
   );
 };
 
+// 定义输入 props 的类型
+export interface RenderInputProps {
+  workflow: Workflow;
+  fps: number;
+  width: number;
+  height: number;
+}
+
 /**
- * Remotion Root（导出多个 Composition）
+ * 可计算的 Composition
  */
-export const RemotionRoot: React.FC = () => {
-  // 从输入 props 获取工作流配置
-  // Remotion CLI 会通过 --props 参数传入
-  const workflowData = (window as any).__REMOTION_PROPS__ as {
-    workflow: Workflow;
-    fps: number;
-    width: number;
-    height: number;
-  };
-
-  // 默认值
-  const fps = workflowData?.fps || 30;
-  const width = workflowData?.width || 1920;
-  const height = workflowData?.height || 1080;
-  const workflow = workflowData?.workflow;
-
-  if (!workflow) {
-    console.error("No workflow data provided");
-    return null;
-  }
+export const WorkflowComposition: React.FC<RenderInputProps> = (props) => {
+  const { workflow, fps } = props;
 
   // 计算时间轴
   const timeline = computeTimelineFromWorkflow(workflow, fps);
-  const totalFrames = timeline.length > 0
-    ? timeline[timeline.length - 1].endFrame
-    : fps * 3;
 
+  return <UnifiedComposition timeline={timeline} />;
+};
+
+/**
+ * Remotion Root（导出多个 Composition）
+ */
+const RemotionRoot: React.FC = () => {
   return (
     <>
       <Composition
         id="workflow-output"
-        component={UnifiedComposition}
-        durationInFrames={totalFrames}
-        fps={fps}
-        width={width}
-        height={height}
-        defaultProps={{ timeline }}
+        component={WorkflowComposition}
+        durationInFrames={300}
+        fps={30}
+        width={1920}
+        height={1080}
+        defaultProps={{
+          workflow: { id: "", name: "", nodes: [], createdAt: 0, updatedAt: 0 },
+          fps: 30,
+          width: 1920,
+          height: 1080,
+        }}
+        calculateMetadata={({ props }) => {
+          const timeline = computeTimelineFromWorkflow(props.workflow, props.fps);
+          const totalFrames = timeline.length > 0
+            ? timeline[timeline.length - 1].endFrame
+            : props.fps * 3;
+
+          return {
+            durationInFrames: totalFrames,
+            fps: props.fps,
+            width: props.width,
+            height: props.height,
+          };
+        }}
       />
     </>
   );
 };
+
+// 注册 Remotion Root（CLI 渲染必需）
+registerRoot(RemotionRoot);
