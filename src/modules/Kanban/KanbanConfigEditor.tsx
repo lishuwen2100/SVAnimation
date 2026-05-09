@@ -1,9 +1,10 @@
 // Kanban 模块配置编辑器
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import type { KanbanConfig } from "@/types/workflow";
 import { Player } from "@remotion/player";
 import { KanbanComposition } from "./KanbanComposition";
+import { saveVideo, getVideoUrl, deleteVideo } from "@/utils/videoStorage";
 
 export interface KanbanConfigEditorProps {
   config: KanbanConfig;
@@ -24,6 +25,40 @@ export function KanbanConfigEditor({
 }: KanbanConfigEditorProps) {
   const videoInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const previousVideoIdRef = useRef<string | null>(null);
+
+  // 加载视频 URL
+  useEffect(() => {
+    let isMounted = true;
+    let objectUrl: string | null = null;
+
+    const loadVideo = async () => {
+      if (config.videoId) {
+        try {
+          const url = await getVideoUrl(config.videoId);
+          if (isMounted && url) {
+            objectUrl = url;
+            setVideoUrl(url);
+          }
+        } catch (error) {
+          console.error("Failed to load video:", error);
+        }
+      } else {
+        setVideoUrl(null);
+      }
+    };
+
+    loadVideo();
+
+    return () => {
+      isMounted = false;
+      // 清理 Blob URL
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+  }, [config.videoId]);
 
   const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -34,49 +69,50 @@ export function KanbanConfigEditor({
       return;
     }
 
-    // 检查文件大小（建议不超过 50MB）
-    const maxSize = 50 * 1024 * 1024; // 50MB
-    if (file.size > maxSize) {
-      alert("视频文件过大（超过 50MB），请选择较小的文件");
-      return;
-    }
-
     setIsUploading(true);
 
     try {
-      // 将文件转换为 Base64 Data URL（可持久化）
-      const reader = new FileReader();
+      // 创建临时 URL 获取视频时长
+      const tempUrl = URL.createObjectURL(file);
+      const videoElement = document.createElement("video");
+      videoElement.src = tempUrl;
 
-      reader.onload = (event) => {
-        const dataUrl = event.target?.result as string;
+      videoElement.onloadedmetadata = async () => {
+        const duration = videoElement.duration;
+        URL.revokeObjectURL(tempUrl); // 释放临时 URL
 
-        // 使用视频元素获取时长
-        const videoElement = document.createElement("video");
-        videoElement.src = dataUrl;
+        try {
+          // 删除旧视频
+          if (previousVideoIdRef.current) {
+            await deleteVideo(previousVideoIdRef.current).catch(console.error);
+          }
 
-        videoElement.onloadedmetadata = () => {
-          const duration = videoElement.duration;
+          // 保存新视频到 IndexedDB
+          const videoId = await saveVideo(file, file.name, duration);
+          previousVideoIdRef.current = videoId;
+
+          // 更新配置
           onChange({
             ...config,
-            videoSrc: dataUrl, // 保存 Base64 Data URL
+            videoId,
+            videoFileName: file.name,
             videoDuration: duration,
             videoSize: file.size,
           });
-          setIsUploading(false);
-        };
 
-        videoElement.onerror = () => {
-          alert("视频加载失败，请检查文件格式");
           setIsUploading(false);
-        };
+        } catch (error) {
+          console.error("Failed to save video:", error);
+          alert("视频保存失败");
+          setIsUploading(false);
+        }
       };
 
-      reader.onerror = () => {
-        alert("文件读取失败");
+      videoElement.onerror = () => {
+        URL.revokeObjectURL(tempUrl);
+        alert("视频加载失败，请检查文件格式");
         setIsUploading(false);
       };
-
-      reader.readAsDataURL(file);
     } catch (error) {
       console.error("Video upload error:", error);
       alert("视频上传失败");
@@ -181,13 +217,18 @@ export function KanbanConfigEditor({
                           d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
                         />
                       </svg>
-                      {config.videoSrc ? "重新上传 MP4" : "上传 MP4 视频"}
+                      {config.videoId ? "重新上传 MP4" : "上传 MP4 视频"}
                     </>
                   )}
                 </div>
               </button>
-              {config.videoSrc && (
+              {config.videoId && (
                 <div className="mt-3 space-y-1 text-sm text-neutral-400">
+                  {config.videoFileName && (
+                    <div className="truncate" title={config.videoFileName}>
+                      文件: {config.videoFileName}
+                    </div>
+                  )}
                   <div>时长: {config.videoDuration.toFixed(2)} 秒</div>
                   {config.videoSize && (
                     <div>
@@ -229,10 +270,10 @@ export function KanbanConfigEditor({
               </h2>
               <div className="relative overflow-hidden rounded-lg bg-black">
                 <Player
-                  key={`${config.videoSrc}-${config.resolution.id}`}
+                  key={`${config.videoId}-${config.resolution.id}`}
                   component={KanbanComposition}
                   inputProps={{
-                    videoSrc: config.videoSrc,
+                    videoSrc: videoUrl,
                     compositionSize: {
                       width: config.resolution.width,
                       height: config.resolution.height,

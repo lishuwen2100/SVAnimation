@@ -120,8 +120,9 @@ export interface DuckSubtitleConfig {
  * Kanban 模块配置
  */
 export interface KanbanConfig {
-  videoSrc: string | null;
-  videoDuration: number;
+  videoId: string | null; // IndexedDB 中的视频 ID
+  videoFileName?: string; // 文件名
+  videoDuration: number; // 视频时长（秒）
   videoSize?: number; // 文件大小（字节）
   resolution: {
     id: string;

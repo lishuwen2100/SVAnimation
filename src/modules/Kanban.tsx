@@ -6,7 +6,7 @@ import type { KanbanConfig } from "@/types/workflow";
 
 export function Kanban() {
   const [config, setConfig] = useState<KanbanConfig>({
-    videoSrc: null,
+    videoId: null,
     videoDuration: 0,
     resolution: {
       id: "720p",

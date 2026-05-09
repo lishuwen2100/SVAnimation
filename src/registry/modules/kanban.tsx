@@ -1,21 +1,21 @@
 // Kanban 模块注册
 
 import type { ModuleDefinition, KanbanConfig } from "@/types/workflow";
-import { KanbanComposition } from "@/modules/Kanban/KanbanComposition";
+import { KanbanCompositionWrapper } from "@/modules/Kanban/KanbanCompositionWrapper";
 import { KanbanConfigEditor } from "@/modules/Kanban/KanbanConfigEditor";
 
 export const kanbanModule: ModuleDefinition = {
   type: "kanban",
   name: "看板",
-  description: "导入并播放 MP4 视频文件",
+  description: "导入并播放 MP4 视频文件，支持大文件（使用 IndexedDB 存储）",
   icon: "📋",
   color: "from-cyan-500/20 to-blue-500/20 border-cyan-500/30",
 
-  CompositionComponent: KanbanComposition,
+  CompositionComponent: KanbanCompositionWrapper,
   ConfigEditorComponent: KanbanConfigEditor,
 
   getDefaultConfig: (): KanbanConfig => ({
-    videoSrc: null,
+    videoId: null,
     videoDuration: 0,
     resolution: {
       id: "720p",
@@ -34,7 +34,7 @@ export const kanbanModule: ModuleDefinition = {
 
   convertConfigToProps: (config: KanbanConfig) => {
     return {
-      videoSrc: config.videoSrc,
+      videoId: config.videoId,
       compositionSize: {
         width: config.resolution.width,
         height: config.resolution.height,
