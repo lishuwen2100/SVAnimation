@@ -177,6 +177,7 @@ export function SubtitleRenderer({ subtitle, fps }: SubtitleRendererProps) {
         opacity: finalOpacity,
         color: subtitle.color,
         fontSize: `${scaleTransform.fontSize}px`,
+        fontFamily: "'Source Han Sans CN', sans-serif",
         fontWeight: "bold",
         textShadow: `
           2px 2px 4px rgba(0, 0, 0, 0.8),

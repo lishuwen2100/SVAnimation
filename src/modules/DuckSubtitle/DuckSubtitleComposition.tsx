@@ -310,7 +310,7 @@ export const DuckSubtitleComposition = ({
                 left: layout.x,
                 top: layout.y,
                 fontSize: cue.fontSize ? `${cue.fontSize}px` : undefined,
-                fontFamily: cue.fontFamily || undefined,
+                fontFamily: cue.fontFamily || "'Source Han Sans CN', sans-serif",
                 textShadow: "0 4px 0 rgba(0,0,0,0.22)",
               }}
             >
@@ -410,7 +410,7 @@ export const DuckSubtitleComposition = ({
                     left: layout.x,
                     top: layout.y,
                     fontSize: cue.fontSize ? `${cue.fontSize}px` : undefined,
-                    fontFamily: cue.fontFamily || undefined,
+                    fontFamily: cue.fontFamily || "'Source Han Sans CN', sans-serif",
                     opacity:
                       interpolate(enter, [0, 1], [0, 1]) * interpolate(visualIndex, [0, 2], [1, 0.54]),
                     transform: getEnterTransform(animation, enter, frameSinceStart),

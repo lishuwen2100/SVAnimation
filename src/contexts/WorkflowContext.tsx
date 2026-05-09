@@ -85,18 +85,21 @@ const saveToStorage = (workflows: Workflow[], currentWorkflowId: string | null):
 export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [currentWorkflowId, setCurrentWorkflowId] = useState<string | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // 初始化：从 localStorage 加载
   useEffect(() => {
     const { workflows: loadedWorkflows, currentWorkflowId: loadedId } = loadFromStorage();
     setWorkflows(loadedWorkflows);
     setCurrentWorkflowId(loadedId);
+    setIsInitialized(true);
   }, []);
 
-  // 自动保存：每次状态变化时同步到 localStorage
+  // 自动保存：每次状态变化时同步到 localStorage（跳过初始化阶段）
   useEffect(() => {
+    if (!isInitialized) return;
     saveToStorage(workflows, currentWorkflowId);
-  }, [workflows, currentWorkflowId]);
+  }, [workflows, currentWorkflowId, isInitialized]);
 
   /**
    * 创建工作流
