@@ -61,7 +61,7 @@ export function SubtitleConfigPanel({
       </div>
 
       {/* 时间设置 */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="space-y-3">
         <div>
           <label className="block text-xs font-medium text-neutral-400 mb-1">
             进入时间 (秒)
@@ -72,11 +72,11 @@ export function SubtitleConfigPanel({
               value={subtitle.enterTime.toFixed(2)}
               onChange={(e) => onUpdate({ enterTime: parseFloat(e.target.value) || 0 })}
               step="0.1"
-              className="flex-1 rounded-lg border border-neutral-700 bg-neutral-800 px-2 py-1 text-sm text-neutral-200 focus:border-cyan-500 focus:outline-none"
+              className="flex-1 min-w-0 rounded-lg border border-neutral-700 bg-neutral-800 px-2 py-1 text-sm text-neutral-200 focus:border-cyan-500 focus:outline-none"
             />
             <button
               onClick={handleSetEnterTime}
-              className="px-2 py-1 rounded-lg border border-cyan-500/30 bg-cyan-500/10 text-xs text-cyan-400 hover:bg-cyan-500/20"
+              className="px-2 py-1 rounded-lg border border-cyan-500/30 bg-cyan-500/10 text-xs text-cyan-400 hover:bg-cyan-500/20 whitespace-nowrap"
               title="获取当前时间"
             >
               当前
@@ -94,11 +94,11 @@ export function SubtitleConfigPanel({
               value={subtitle.exitTime.toFixed(2)}
               onChange={(e) => onUpdate({ exitTime: parseFloat(e.target.value) || 0 })}
               step="0.1"
-              className="flex-1 rounded-lg border border-neutral-700 bg-neutral-800 px-2 py-1 text-sm text-neutral-200 focus:border-cyan-500 focus:outline-none"
+              className="flex-1 min-w-0 rounded-lg border border-neutral-700 bg-neutral-800 px-2 py-1 text-sm text-neutral-200 focus:border-cyan-500 focus:outline-none"
             />
             <button
               onClick={handleSetExitTime}
-              className="px-2 py-1 rounded-lg border border-cyan-500/30 bg-cyan-500/10 text-xs text-cyan-400 hover:bg-cyan-500/20"
+              className="px-2 py-1 rounded-lg border border-cyan-500/30 bg-cyan-500/10 text-xs text-cyan-400 hover:bg-cyan-500/20 whitespace-nowrap"
               title="获取当前时间"
             >
               当前
@@ -108,7 +108,7 @@ export function SubtitleConfigPanel({
       </div>
 
       {/* 样式设置 */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="space-y-3">
         <div>
           <label className="block text-xs font-medium text-neutral-400 mb-1">
             字体大小
@@ -132,13 +132,13 @@ export function SubtitleConfigPanel({
               type="color"
               value={subtitle.color}
               onChange={(e) => onUpdate({ color: e.target.value })}
-              className="w-12 h-9 rounded-lg border border-neutral-700 bg-neutral-800 cursor-pointer"
+              className="w-12 h-9 rounded-lg border border-neutral-700 bg-neutral-800 cursor-pointer flex-shrink-0"
             />
             <input
               type="text"
               value={subtitle.color}
               onChange={(e) => onUpdate({ color: e.target.value })}
-              className="flex-1 rounded-lg border border-neutral-700 bg-neutral-800 px-2 py-1 text-sm text-neutral-200 focus:border-cyan-500 focus:outline-none"
+              className="flex-1 min-w-0 rounded-lg border border-neutral-700 bg-neutral-800 px-2 py-1 text-sm text-neutral-200 focus:border-cyan-500 focus:outline-none"
             />
           </div>
         </div>
