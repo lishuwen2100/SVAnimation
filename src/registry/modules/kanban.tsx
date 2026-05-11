@@ -24,6 +24,7 @@ export const kanbanModule: ModuleDefinition = {
       label: "1280 x 720 (HD)",
     },
     subtitles: [],
+    images: [],
   }),
 
   getDuration: (config: KanbanConfig, fps: number): number => {
@@ -41,6 +42,7 @@ export const kanbanModule: ModuleDefinition = {
         height: config.resolution.height,
       },
       subtitles: config.subtitles,
+      images: config.images || [],
     };
   },
 };

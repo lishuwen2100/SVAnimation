@@ -117,15 +117,18 @@ export interface DuckSubtitleConfig {
 }
 
 /**
- * 看板字幕动画类型
+ * 看板字幕/图片动画类型
  */
-export type KanbanSubtitleAnimation =
+export type KanbanAnimation =
   | "none"
   | "slam-bounce"
   | "spin-scale"
   | "side-skew"
   | "pop-shake"
   | "bounce-sway";
+
+// 保持向后兼容
+export type KanbanSubtitleAnimation = KanbanAnimation;
 
 /**
  * 看板字幕缩放配置
@@ -171,6 +174,34 @@ export interface KanbanSubtitle {
 }
 
 /**
+ * 看板图片移动配置
+ */
+export interface KanbanImageMove {
+  enabled: boolean;
+  width: number;       // 移动后的宽度
+  height: number;      // 移动后的高度
+  position: { x: number; y: number }; // 移动到的位置
+  startTime: number;   // 开始移动的时间（秒）
+  duration: number;    // 移动持续时间（秒）
+}
+
+/**
+ * 看板图片配置
+ */
+export interface KanbanImage {
+  id: string;          // 唯一标识
+  imageData: string;   // Base64 图片数据
+  fileName: string;    // 文件名
+  enterTime: number;   // 进入画面时间（秒）
+  exitTime: number;    // 移出画面时间（秒，0 表示一直显示）
+  width: number;       // 图片宽度（像素）
+  height: number;      // 图片高度（像素）
+  position: { x: number; y: number }; // 坐标（像素）
+  animation: KanbanAnimation; // 进入动画
+  move: KanbanImageMove; // 移动配置
+}
+
+/**
  * Kanban 模块配置
  */
 export interface KanbanConfig {
@@ -185,4 +216,5 @@ export interface KanbanConfig {
     label: string;
   };
   subtitles: KanbanSubtitle[]; // 字幕列表
+  images: KanbanImage[];        // 图片列表
 }

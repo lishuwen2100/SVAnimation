@@ -1,11 +1,12 @@
 // Kanban 模块配置编辑器
 
 import { useRef, useState, useEffect } from "react";
-import type { KanbanConfig, KanbanSubtitle } from "@/types/workflow";
+import type { KanbanConfig, KanbanSubtitle, KanbanImage } from "@/types/workflow";
 import { Player } from "@remotion/player";
 import { KanbanComposition } from "./KanbanComposition";
 import { saveVideo, getVideoUrl, deleteVideo } from "@/utils/videoStorage";
 import { SubtitleConfigPanel } from "./SubtitleConfigPanel";
+import { ImageConfigPanel } from "./ImageConfigPanel";
 
 export interface KanbanConfigEditorProps {
   config: KanbanConfig;
@@ -35,11 +36,14 @@ export function KanbanConfigEditor({
   const [resolutionExpanded, setResolutionExpanded] = useState(false);
   const [subtitlesExpanded, setSubtitlesExpanded] = useState(false);
   const [expandedSubtitleId, setExpandedSubtitleId] = useState<string | null>(null);
+  const [imagesExpanded, setImagesExpanded] = useState(false);
+  const [expandedImageId, setExpandedImageId] = useState<string | null>(null);
 
   // 坐标点选状态
   const [pickingState, setPickingState] = useState<{
-    subtitleId: string;
-    type: "initial" | "scale";
+    id: string;
+    itemType: "subtitle" | "image";
+    posType: "initial" | "scale" | "move";
   } | null>(null);
 
   // 加载视频 URL
@@ -205,9 +209,74 @@ export function KanbanConfigEditor({
     });
   };
 
-  // 开始点选坐标
+  // 添加图片
+  const handleAddImage = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const imageData = e.target?.result as string;
+      const img = new Image();
+      img.onload = () => {
+        const currentTime = getCurrentTime();
+        const newImage: KanbanImage = {
+          id: `image-${Date.now()}`,
+          imageData,
+          fileName: file.name,
+          enterTime: currentTime,
+          exitTime: 0,
+          width: Math.min(img.width, 400), // 限制初始宽度
+          height: Math.min(img.height, 400),
+          position: { x: 100, y: 100 },
+          animation: "none",
+          move: {
+            enabled: false,
+            width: Math.min(img.width, 400),
+            height: Math.min(img.height, 400),
+            position: { x: 100, y: 100 },
+            startTime: currentTime + 1,
+            duration: 1,
+          },
+        };
+
+        onChange({
+          ...config,
+          images: [...(config.images || []), newImage],
+        });
+
+        // 展开图片面板和新图片
+        setImagesExpanded(true);
+        setExpandedImageId(newImage.id);
+      };
+      img.src = imageData;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // 更新图片
+  const handleUpdateImage = (id: string, updates: Partial<KanbanImage>) => {
+    onChange({
+      ...config,
+      images: (config.images || []).map((img) =>
+        img.id === id ? { ...img, ...updates } : img
+      ),
+    });
+  };
+
+  // 删除图片
+  const handleDeleteImage = (id: string) => {
+    onChange({
+      ...config,
+      images: (config.images || []).filter((img) => img.id !== id),
+    });
+  };
+
+  // 开始点选坐标（字幕）
   const handleStartPickingPosition = (subtitleId: string, type: "initial" | "scale") => {
-    setPickingState({ subtitleId, type });
+    setPickingState({ id: subtitleId, itemType: "subtitle", posType: type });
+  };
+
+  // 开始点选坐标（图片）
+  const handleStartPickingImagePosition = (imageId: string, type: "initial" | "move") => {
+    setPickingState({ id: imageId, itemType: "image", posType: type });
   };
 
   // 处理视频点击
@@ -224,20 +293,39 @@ export function KanbanConfigEditor({
     const actualX = Math.round(x * scaleX);
     const actualY = Math.round(y * scaleY);
 
-    // 更新字幕坐标
-    const subtitle = config.subtitles.find((s) => s.id === pickingState.subtitleId);
-    if (subtitle) {
-      if (pickingState.type === "initial") {
-        handleUpdateSubtitle(pickingState.subtitleId, {
-          position: { x: actualX, y: actualY },
-        });
-      } else {
-        handleUpdateSubtitle(pickingState.subtitleId, {
-          scale: {
-            ...subtitle.scale,
+    if (pickingState.itemType === "subtitle") {
+      // 更新字幕坐标
+      const subtitle = config.subtitles.find((s) => s.id === pickingState.id);
+      if (subtitle) {
+        if (pickingState.posType === "initial") {
+          handleUpdateSubtitle(pickingState.id, {
             position: { x: actualX, y: actualY },
-          },
-        });
+          });
+        } else if (pickingState.posType === "scale") {
+          handleUpdateSubtitle(pickingState.id, {
+            scale: {
+              ...subtitle.scale,
+              position: { x: actualX, y: actualY },
+            },
+          });
+        }
+      }
+    } else if (pickingState.itemType === "image") {
+      // 更新图片坐标
+      const image = (config.images || []).find((img) => img.id === pickingState.id);
+      if (image) {
+        if (pickingState.posType === "initial") {
+          handleUpdateImage(pickingState.id, {
+            position: { x: actualX, y: actualY },
+          });
+        } else if (pickingState.posType === "move") {
+          handleUpdateImage(pickingState.id, {
+            move: {
+              ...image.move,
+              position: { x: actualX, y: actualY },
+            },
+          });
+        }
       }
     }
 
@@ -439,7 +527,117 @@ export function KanbanConfigEditor({
                               onGetCurrentTime={getCurrentTime}
                               onStartPickingPosition={handleStartPickingPosition}
                               isPickingPosition={
-                                pickingState?.subtitleId === subtitle.id
+                                pickingState?.id === subtitle.id && pickingState?.itemType === "subtitle"
+                              }
+                            />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </section>
+
+            {/* 图片设定（可折叠） */}
+            <section className="rounded-xl border border-neutral-800 bg-neutral-900/50 backdrop-blur-sm overflow-hidden">
+              <button
+                onClick={() => setImagesExpanded(!imagesExpanded)}
+                className="w-full p-6 text-left flex items-center justify-between hover:bg-neutral-800/30 transition-colors"
+              >
+                <div>
+                  <h2 className="text-lg font-bold text-neutral-200">图片设定</h2>
+                  <p className="text-sm text-neutral-500 mt-1">
+                    共 {(config.images || []).length} 张图片
+                  </p>
+                </div>
+                <svg
+                  className={`h-5 w-5 text-neutral-400 transition-transform ${imagesExpanded ? "rotate-180" : ""}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {imagesExpanded && (
+                <div className="px-6 pb-6 space-y-4">
+                  {/* 添加图片按钮 */}
+                  <label className="block w-full rounded-lg border border-dashed border-neutral-600 bg-neutral-800/30 px-4 py-3 font-semibold text-neutral-400 transition-all hover:border-neutral-500 hover:bg-neutral-800/50 hover:text-neutral-300 cursor-pointer text-center">
+                    + 添加图片
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          handleAddImage(file);
+                          e.target.value = ""; // 重置input以允许重复选择
+                        }
+                      }}
+                      className="hidden"
+                    />
+                  </label>
+
+                  {/* 图片列表 */}
+                  {(config.images || []).length === 0 ? (
+                    <div className="text-center py-8 text-neutral-500">
+                      暂无图片，点击上方按钮添加
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {(config.images || []).map((image, index) => (
+                        <div
+                          key={image.id}
+                          className="rounded-lg border border-neutral-700 bg-neutral-800/50 overflow-hidden"
+                        >
+                          {/* 图片标题栏 */}
+                          <button
+                            onClick={() =>
+                              setExpandedImageId(
+                                expandedImageId === image.id ? null : image.id
+                              )
+                            }
+                            className="w-full p-3 text-left flex items-center justify-between hover:bg-neutral-700/30 transition-colors"
+                          >
+                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                              <img
+                                src={image.imageData}
+                                alt={image.fileName}
+                                className="w-10 h-10 object-cover rounded"
+                              />
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm font-medium text-neutral-200 truncate">
+                                  图片 {index + 1}: {image.fileName}
+                                </div>
+                                <div className="text-xs text-neutral-500 mt-1">
+                                  {image.enterTime.toFixed(2)}s
+                                  {image.exitTime > 0 ? ` - ${image.exitTime.toFixed(2)}s` : " - 结束"}
+                                </div>
+                              </div>
+                            </div>
+                            <svg
+                              className={`h-4 w-4 text-neutral-400 transition-transform ml-2 flex-shrink-0 ${
+                                expandedImageId === image.id ? "rotate-180" : ""
+                              }`}
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </button>
+
+                          {/* 图片配置面板 */}
+                          {expandedImageId === image.id && (
+                            <ImageConfigPanel
+                              image={image}
+                              onUpdate={(updates) => handleUpdateImage(image.id, updates)}
+                              onDelete={() => handleDeleteImage(image.id)}
+                              onGetCurrentTime={getCurrentTime}
+                              onStartPickingPosition={handleStartPickingImagePosition}
+                              isPickingPosition={
+                                pickingState?.id === image.id && pickingState?.itemType === "image"
                               }
                             />
                           )}
