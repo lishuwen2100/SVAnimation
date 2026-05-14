@@ -794,9 +794,9 @@ export const DuckSubtitleConfigEditor: React.FC<DuckSubtitleConfigEditorProps> =
                               </label>
                               <input
                                 type="range"
-                                min="36"
-                                max="120"
-                                step="2"
+                                min="24"
+                                max="500"
+                                step="4"
                                 value={subtitle.fontSize || 72}
                                 onChange={(e) => handleUpdateSubtitle(subtitle.id, { fontSize: Number(e.target.value) })}
                                 className="w-full accent-yellow-500"
