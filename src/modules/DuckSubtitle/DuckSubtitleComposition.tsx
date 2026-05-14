@@ -311,6 +311,7 @@ export const DuckSubtitleComposition = ({
                 top: layout.y,
                 fontSize: cue.fontSize ? `${cue.fontSize}px` : undefined,
                 fontFamily: cue.fontFamily || "'Source Han Sans CN', sans-serif",
+                color: cue.color || "#f5f5f5",
                 textShadow: "0 4px 0 rgba(0,0,0,0.22)",
               }}
             >
@@ -416,7 +417,7 @@ export const DuckSubtitleComposition = ({
                     transform: getEnterTransform(animation, enter, frameSinceStart),
                     filter: `blur(${interpolate(enter, [0, 1], [8, 0])}px)`,
                     textShadow: "0 4px 0 rgba(0,0,0,0.22)",
-                    color: isLatest ? "#f5f5f5" : "#dadada",
+                    color: cue.color || (isLatest ? "#f5f5f5" : "#dadada"),
                   }}
                 >
                   {cue.text}

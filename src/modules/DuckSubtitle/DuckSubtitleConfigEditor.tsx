@@ -71,6 +71,7 @@ export const DuckSubtitleConfigEditor: React.FC<DuckSubtitleConfigEditorProps> =
             text: subtitle.text,
             fontFamily: subtitle.fontFamily,
             fontSize: subtitle.fontSize,
+            color: subtitle.color,
             animation: subtitle.animation,
             customPosition: subtitle.customPosition,
           };
@@ -801,6 +802,26 @@ export const DuckSubtitleConfigEditor: React.FC<DuckSubtitleConfigEditorProps> =
                                 onChange={(e) => handleUpdateSubtitle(subtitle.id, { fontSize: Number(e.target.value) })}
                                 className="w-full accent-yellow-500"
                               />
+                            </div>
+
+                            {/* 颜色 */}
+                            <div>
+                              <label className="mb-1 block text-xs font-medium text-neutral-400">颜色</label>
+                              <div className="flex gap-2 items-center">
+                                <input
+                                  type="color"
+                                  value={subtitle.color || "#FFFFFF"}
+                                  onChange={(e) => handleUpdateSubtitle(subtitle.id, { color: e.target.value })}
+                                  className="h-8 w-16 rounded border border-neutral-700 bg-neutral-800 cursor-pointer"
+                                />
+                                <input
+                                  type="text"
+                                  value={subtitle.color || "#FFFFFF"}
+                                  onChange={(e) => handleUpdateSubtitle(subtitle.id, { color: e.target.value })}
+                                  placeholder="#FFFFFF"
+                                  className="flex-1 rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-xs text-neutral-100 font-mono"
+                                />
+                              </div>
                             </div>
 
                             {/* 入场动画 */}

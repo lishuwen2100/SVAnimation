@@ -96,6 +96,7 @@ export interface DuckSubtitleItem {
   // 注意：字幕消失时间由倒鸭子旋转逻辑控制，不需要 endTime
   fontFamily?: string;
   fontSize?: number;
+  color?: string;      // 字幕颜色（CSS 颜色值）
   animation?: string;
   customPosition?: { x: number; y: number };
 }

@@ -9,6 +9,7 @@ export type SubtitleCue = {
   text: string;
   fontFamily?: string;
   fontSize?: number;
+  color?: string;
   animation?: EnterAnimationName;
   customPosition?: Point | null;
 };

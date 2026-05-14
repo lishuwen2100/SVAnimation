@@ -101,6 +101,7 @@ export const duckSubtitleModule: ModuleDefinition = {
             text: subtitle.text,
             fontFamily: subtitle.fontFamily,
             fontSize: subtitle.fontSize,
+            color: subtitle.color,
             animation: subtitle.animation,
             customPosition: subtitle.customPosition,
           };
