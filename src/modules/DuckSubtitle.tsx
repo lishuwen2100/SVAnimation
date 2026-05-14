@@ -12,7 +12,7 @@ export function DuckSubtitle() {
     id: `demo-subtitle-${index}`,
     text: cue.text,
     startTime: cue.startSec,
-    endTime: cue.endSec,
+    // endTime 由倒鸭子旋转逻辑控制，不需要存储
   }));
 
   const [config, setConfig] = useState<DuckSubtitleConfig>({

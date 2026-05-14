@@ -46,20 +46,35 @@ export const DuckSubtitleConfigEditor: React.FC<DuckSubtitleConfigEditorProps> =
   const cues = useMemo(() => {
     // 优先使用字幕列表,如果为空则解析 SRT
     if (config.subtitles.length > 0) {
+      const GROUP_SIZE = 3;
+      const ROTATE_DURATION_FRAMES = 16;
+
       return config.subtitles
         .sort((a, b) => a.startTime - b.startTime)
-        .map((subtitle, index) => ({
-          id: index,
-          startSec: subtitle.startTime,
-          endSec: subtitle.endTime,
-          startFrame: Math.floor(subtitle.startTime * FPS),
-          endFrame: Math.floor(subtitle.endTime * FPS),
-          text: subtitle.text,
-          fontFamily: subtitle.fontFamily,
-          fontSize: subtitle.fontSize,
-          animation: subtitle.animation,
-          customPosition: subtitle.customPosition,
-        }));
+        .map((subtitle, index) => {
+          // 计算旋转延迟
+          const groupDelay = Math.floor(index / GROUP_SIZE) * (ROTATE_DURATION_FRAMES / FPS);
+          const adjustedStart = subtitle.startTime + groupDelay;
+          const startFrame = Math.round(adjustedStart * FPS);
+
+          // 计算合理的结束时间（默认持续1.5秒）
+          const defaultDuration = 1.5;
+          const adjustedEnd = adjustedStart + defaultDuration;
+          const endFrame = Math.max(startFrame + 12, Math.round(adjustedEnd * FPS));
+
+          return {
+            id: index,
+            startSec: subtitle.startTime,
+            endSec: subtitle.startTime + defaultDuration,
+            startFrame,
+            endFrame,
+            text: subtitle.text,
+            fontFamily: subtitle.fontFamily,
+            fontSize: subtitle.fontSize,
+            animation: subtitle.animation,
+            customPosition: subtitle.customPosition,
+          };
+        });
     } else {
       // 向后兼容:从 SRT 文本解析
       const parsedCues = parseSrt(config.srtText);
@@ -98,7 +113,7 @@ export const DuckSubtitleConfigEditor: React.FC<DuckSubtitleConfigEditorProps> =
       id: `subtitle-${Date.now()}-${index}`,
       text: cue.text,
       startTime: cue.startSec,
-      endTime: cue.endSec,
+      // endTime 由倒鸭子旋转逻辑控制，不需要存储
       fontFamily: config.subtitleStyles[cue.id]?.fontFamily,
       fontSize: config.subtitleStyles[cue.id]?.fontSize,
       animation: config.subtitleStyles[cue.id]?.animation,
@@ -119,7 +134,7 @@ export const DuckSubtitleConfigEditor: React.FC<DuckSubtitleConfigEditorProps> =
       id: `subtitle-${Date.now()}`,
       text: "新字幕",
       startTime: currentTime,
-      endTime: currentTime + 1.5,
+      // endTime 由倒鸭子旋转逻辑控制
     };
 
     onChange({
@@ -697,7 +712,7 @@ export const DuckSubtitleConfigEditor: React.FC<DuckSubtitleConfigEditorProps> =
                               #{index + 1}: {subtitle.text}
                             </div>
                             <div className="text-[10px] text-neutral-500 mt-0.5">
-                              {subtitle.startTime.toFixed(2)}s - {subtitle.endTime.toFixed(2)}s
+                              开始时间: {subtitle.startTime.toFixed(2)}s
                             </div>
                           </div>
                           <svg
@@ -729,7 +744,7 @@ export const DuckSubtitleConfigEditor: React.FC<DuckSubtitleConfigEditorProps> =
                             {/* 开始时间 */}
                             <div>
                               <label className="mb-1 block text-xs font-medium text-neutral-400">
-                                开始时间
+                                开始时间（秒）
                                 <button
                                   onClick={() => handleUpdateSubtitle(subtitle.id, { startTime: getCurrentTime() })}
                                   className="ml-2 text-[10px] text-cyan-400 hover:text-cyan-300"
@@ -744,26 +759,9 @@ export const DuckSubtitleConfigEditor: React.FC<DuckSubtitleConfigEditorProps> =
                                 onChange={(e) => handleUpdateSubtitle(subtitle.id, { startTime: Number(e.target.value) })}
                                 className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-xs text-neutral-100"
                               />
-                            </div>
-
-                            {/* 结束时间 */}
-                            <div>
-                              <label className="mb-1 block text-xs font-medium text-neutral-400">
-                                结束时间
-                                <button
-                                  onClick={() => handleUpdateSubtitle(subtitle.id, { endTime: getCurrentTime() })}
-                                  className="ml-2 text-[10px] text-cyan-400 hover:text-cyan-300"
-                                >
-                                  [使用当前时间]
-                                </button>
-                              </label>
-                              <input
-                                type="number"
-                                step="0.1"
-                                value={subtitle.endTime}
-                                onChange={(e) => handleUpdateSubtitle(subtitle.id, { endTime: Number(e.target.value) })}
-                                className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-xs text-neutral-100"
-                              />
+                              <p className="mt-1 text-[10px] text-neutral-500">
+                                字幕消失由旋转逻辑控制（每3条字幕旋转淡出）
+                              </p>
                             </div>
 
                             {/* 字体 */}

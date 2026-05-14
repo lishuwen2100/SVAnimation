@@ -23,7 +23,7 @@ export const duckSubtitleModule: ModuleDefinition = {
       id: `demo-subtitle-${index}`,
       text: cue.text,
       startTime: cue.startSec,
-      endTime: cue.endSec,
+      // endTime 由倒鸭子旋转逻辑控制，不需要存储
     }));
 
     return {
@@ -55,10 +55,12 @@ export const duckSubtitleModule: ModuleDefinition = {
 
     // 优先使用字幕列表计算时长
     if (config.subtitles.length > 0) {
-      const lastSubtitle = config.subtitles.reduce((max, sub) =>
-        sub.endTime > max.endTime ? sub : max
-      );
-      subtitleFrames = Math.ceil(lastSubtitle.endTime * fps) + fps * 2;
+      // 字幕数量决定时长（考虑旋转动画）
+      const GROUP_SIZE = 3;
+      const ROTATE_DURATION_FRAMES = 16;
+      const lastSubtitle = config.subtitles[config.subtitles.length - 1];
+      const groupDelay = Math.floor((config.subtitles.length - 1) / GROUP_SIZE) * (ROTATE_DURATION_FRAMES / fps);
+      subtitleFrames = Math.ceil((lastSubtitle.startTime + groupDelay + 2) * fps);
     } else if (config.srtText) {
       // 向后兼容:从 SRT 文本解析
       const cues = parseSrt(config.srtText);
@@ -74,20 +76,35 @@ export const duckSubtitleModule: ModuleDefinition = {
 
     // 优先使用字幕列表
     if (config.subtitles.length > 0) {
+      const GROUP_SIZE = 3;
+      const ROTATE_DURATION_FRAMES = 16;
+
       cues = config.subtitles
         .sort((a, b) => a.startTime - b.startTime)
-        .map((subtitle, index) => ({
-          id: index,
-          startSec: subtitle.startTime,
-          endSec: subtitle.endTime,
-          startFrame: Math.floor(subtitle.startTime * FPS),
-          endFrame: Math.floor(subtitle.endTime * FPS),
-          text: subtitle.text,
-          fontFamily: subtitle.fontFamily,
-          fontSize: subtitle.fontSize,
-          animation: subtitle.animation,
-          customPosition: subtitle.customPosition,
-        }));
+        .map((subtitle, index) => {
+          // 计算旋转延迟
+          const groupDelay = Math.floor(index / GROUP_SIZE) * (ROTATE_DURATION_FRAMES / FPS);
+          const adjustedStart = subtitle.startTime + groupDelay;
+          const startFrame = Math.round(adjustedStart * FPS);
+
+          // 计算合理的结束时间（默认持续1.5秒，但受旋转逻辑影响）
+          const defaultDuration = 1.5;
+          const adjustedEnd = adjustedStart + defaultDuration;
+          const endFrame = Math.max(startFrame + 12, Math.round(adjustedEnd * FPS));
+
+          return {
+            id: index,
+            startSec: subtitle.startTime,
+            endSec: subtitle.startTime + defaultDuration, // 用于兼容，实际不影响显示
+            startFrame,
+            endFrame,
+            text: subtitle.text,
+            fontFamily: subtitle.fontFamily,
+            fontSize: subtitle.fontSize,
+            animation: subtitle.animation,
+            customPosition: subtitle.customPosition,
+          };
+        });
     } else {
       // 向后兼容:从 SRT 文本解析
       cues = parseSrt(config.srtText).map((cue) => ({

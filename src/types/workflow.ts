@@ -93,7 +93,7 @@ export interface DuckSubtitleItem {
   id: string;          // 唯一标识
   text: string;        // 字幕文本
   startTime: number;   // 开始时间（秒）
-  endTime: number;     // 结束时间（秒）
+  // 注意：字幕消失时间由倒鸭子旋转逻辑控制，不需要 endTime
   fontFamily?: string;
   fontSize?: number;
   animation?: string;
