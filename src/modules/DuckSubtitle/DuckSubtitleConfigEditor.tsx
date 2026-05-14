@@ -640,14 +640,14 @@ export const DuckSubtitleConfigEditor: React.FC<DuckSubtitleConfigEditorProps> =
             </div>
           </details>
 
-          {/* 字幕列表管理 */}
+          {/* 字幕管理 */}
           <section className="rounded-xl border border-neutral-800 bg-neutral-900/50 backdrop-blur-sm overflow-hidden">
             <button
               onClick={() => setSubtitlesExpanded(!subtitlesExpanded)}
               className="w-full p-4 text-left flex items-center justify-between hover:bg-neutral-800/30 transition-colors"
             >
               <div>
-                <h2 className="text-sm font-semibold text-neutral-100">字幕列表</h2>
+                <h2 className="text-sm font-semibold text-neutral-100">字幕管理</h2>
                 <p className="text-xs text-neutral-500 mt-1">
                   共 {config.subtitles.length} 条字幕
                 </p>
@@ -677,7 +677,7 @@ export const DuckSubtitleConfigEditor: React.FC<DuckSubtitleConfigEditorProps> =
                     暂无字幕，点击上方按钮添加或导入 SRT 文件
                   </div>
                 ) : (
-                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                  <div className="space-y-2 max-h-80 overflow-y-auto">
                     {config.subtitles.map((subtitle, index) => (
                       <div
                         key={subtitle.id}
@@ -842,209 +842,6 @@ export const DuckSubtitleConfigEditor: React.FC<DuckSubtitleConfigEditorProps> =
               </div>
             )}
           </section>
-
-          {/* 字幕样式设置 */}
-          <details className="group overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900/50 backdrop-blur-sm">
-            <summary className="cursor-pointer select-none px-4 py-3 text-sm font-semibold text-neutral-100 transition-colors hover:bg-neutral-800/50">
-              字幕样式设置
-            </summary>
-            <div className="space-y-3 border-t border-neutral-800 px-4 py-3">
-              {/* 快速预设 */}
-              <div className="space-y-2">
-                <label className="block text-xs font-medium text-neutral-400">快速预设</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {stylePresets.map((preset) => (
-                    <button
-                      key={preset.id}
-                      onClick={() => applyPresetToSelected(preset)}
-                      disabled={selectedCueIds.size === 0}
-                      className={`rounded-lg border px-3 py-2 text-left text-xs transition-all ${
-                        selectedCueIds.size === 0
-                          ? "cursor-not-allowed border-neutral-800 bg-neutral-900/30 text-neutral-600"
-                          : "border-neutral-700 text-neutral-300 hover:border-neutral-600 hover:bg-neutral-800/50"
-                      }`}
-                    >
-                      <div className="font-medium">{preset.label}</div>
-                      <div className="mt-1 text-[10px] text-neutral-500">{preset.description}</div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* 批量操作 */}
-              <div className="flex gap-2">
-                <button
-                  onClick={selectAllCues}
-                  className="flex-1 rounded-md bg-neutral-800 px-3 py-1.5 text-xs text-neutral-300 transition-colors hover:bg-neutral-700"
-                >
-                  全选
-                </button>
-                <button
-                  onClick={clearSelection}
-                  className="flex-1 rounded-md bg-neutral-800 px-3 py-1.5 text-xs text-neutral-300 transition-colors hover:bg-neutral-700"
-                >
-                  清空
-                </button>
-                <button
-                  onClick={resetStyles}
-                  className="flex-1 rounded-md bg-red-900/30 px-3 py-1.5 text-xs text-red-400 transition-colors hover:bg-red-900/50"
-                >
-                  重置全部
-                </button>
-              </div>
-
-              {/* 字幕列表 */}
-              <div className="max-h-64 space-y-1.5 overflow-y-auto">
-                {cues.map((cue) => {
-                  const isSelected = selectedCueIds.has(cue.id);
-                  const isExpanded = expandedCueId === cue.id;
-                  const style = config.subtitleStyles[cue.id] || {};
-
-                  return (
-                    <div
-                      key={cue.id}
-                      className={`rounded-lg border transition-all ${
-                        isSelected
-                          ? "border-green-500 bg-green-500/10"
-                          : "border-neutral-700 bg-neutral-800/30"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 p-2">
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => toggleCueSelection(cue.id)}
-                          className="h-4 w-4 accent-green-500"
-                        />
-                        <button
-                          onClick={() => setExpandedCueId(isExpanded ? null : cue.id)}
-                          className="flex-1 text-left"
-                        >
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-neutral-500">#{cue.id + 1}</span>
-                            <span className="truncate text-sm text-neutral-300">{cue.text}</span>
-                          </div>
-                        </button>
-                        <svg
-                          className={`h-4 w-4 text-neutral-500 transition-transform ${
-                            isExpanded ? "rotate-180" : ""
-                          }`}
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                      </div>
-
-                      {isExpanded && (
-                        <div className="space-y-3 border-t border-neutral-700 p-3">
-                          {/* 字体 */}
-                          <div>
-                            <label className="mb-1 block text-xs font-medium text-neutral-400">字体</label>
-                            <select
-                              value={style.fontFamily || "default"}
-                              onChange={(e) =>
-                                updateCueStyle(cue.id, {
-                                  fontFamily:
-                                    e.target.value === "default"
-                                      ? undefined
-                                      : fontFamilyOptions.find((f) => f.id === e.target.value)?.value,
-                                })
-                              }
-                              className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-xs text-neutral-100"
-                            >
-                              {fontFamilyOptions.map((font) => (
-                                <option key={font.id} value={font.id}>
-                                  {font.label}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-
-                          {/* 字号 */}
-                          <div>
-                            <label className="mb-1 block text-xs font-medium text-neutral-400">
-                              字号 <span className="text-yellow-400">{style.fontSize || 72}px</span>
-                            </label>
-                            <input
-                              type="range"
-                              min="36"
-                              max="120"
-                              step="2"
-                              value={style.fontSize || 72}
-                              onChange={(e) => updateCueStyle(cue.id, { fontSize: Number(e.target.value) })}
-                              className="w-full accent-yellow-500"
-                            />
-                          </div>
-
-                          {/* 入场动画 */}
-                          <div>
-                            <label className="mb-1 block text-xs font-medium text-neutral-400">入场动画</label>
-                            <select
-                              value={style.animation || "default"}
-                              onChange={(e) =>
-                                updateCueStyle(cue.id, {
-                                  animation: e.target.value === "default" ? undefined : (e.target.value as any),
-                                })
-                              }
-                              className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-xs text-neutral-100"
-                            >
-                              <option value="default">随机</option>
-                              {enterAnimationOptions.map((anim) => (
-                                <option key={anim.id} value={anim.id}>
-                                  {anim.label}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-
-                          {/* 自定义位置 */}
-                          <div>
-                            <label className="mb-1 block text-xs font-medium text-neutral-400">自定义位置</label>
-                            {style.customPosition ? (
-                              <div className="space-y-2">
-                                <div className="rounded-lg border border-blue-500/30 bg-blue-500/10 p-2 text-xs text-blue-300">
-                                  位置: ({Math.round(style.customPosition.x)}, {Math.round(style.customPosition.y)})
-                                </div>
-                                <div className="flex gap-2">
-                                  <button
-                                    onClick={() => {
-                                      setSelectingCueId(cue.id);
-                                      setIsSelectingPosition(true);
-                                    }}
-                                    className="flex-1 rounded-md bg-blue-600 px-2 py-1.5 text-xs text-white transition-colors hover:bg-blue-500"
-                                  >
-                                    重新选择
-                                  </button>
-                                  <button
-                                    onClick={() => updateCueStyle(cue.id, { customPosition: null })}
-                                    className="rounded-md bg-neutral-700 px-2 py-1.5 text-xs text-neutral-300 transition-colors hover:bg-neutral-600"
-                                  >
-                                    清除
-                                  </button>
-                                </div>
-                              </div>
-                            ) : (
-                              <button
-                                onClick={() => {
-                                  setSelectingCueId(cue.id);
-                                  setIsSelectingPosition(true);
-                                }}
-                                className="w-full rounded-md border border-dashed border-blue-500 bg-blue-500/5 px-2 py-2 text-xs text-blue-300 transition-colors hover:bg-blue-500/10"
-                              >
-                                点击画面选择
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </details>
 
           {/* 完成按钮（移动端） */}
           <button
