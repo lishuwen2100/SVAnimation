@@ -807,7 +807,7 @@ export const DuckSubtitleConfigEditor: React.FC<DuckSubtitleConfigEditorProps> =
                             {/* 颜色 */}
                             <div>
                               <label className="mb-1 block text-xs font-medium text-neutral-400">颜色</label>
-                              <div className="flex gap-2 items-center">
+                              <div className="flex gap-2 items-center mb-2">
                                 <input
                                   type="color"
                                   value={subtitle.color || "#FFFFFF"}
@@ -821,6 +821,27 @@ export const DuckSubtitleConfigEditor: React.FC<DuckSubtitleConfigEditorProps> =
                                   placeholder="#FFFFFF"
                                   className="flex-1 rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-xs text-neutral-100 font-mono"
                                 />
+                              </div>
+                              {/* 预设颜色 */}
+                              <div className="grid grid-cols-8 gap-1.5">
+                                {[
+                                  { color: "#FFFFFF", label: "白色" },
+                                  { color: "#FFD93D", label: "金黄" },
+                                  { color: "#FF6B6B", label: "红色" },
+                                  { color: "#FF8C42", label: "橙色" },
+                                  { color: "#4ECDC4", label: "青色" },
+                                  { color: "#95E1D3", label: "薄荷" },
+                                  { color: "#B565D8", label: "紫色" },
+                                  { color: "#FF006E", label: "品红" },
+                                ].map((preset) => (
+                                  <button
+                                    key={preset.color}
+                                    onClick={() => handleUpdateSubtitle(subtitle.id, { color: preset.color })}
+                                    className="h-7 rounded border border-neutral-700 hover:scale-110 transition-transform active:scale-95"
+                                    style={{ backgroundColor: preset.color }}
+                                    title={`${preset.label} (${preset.color})`}
+                                  />
+                                ))}
                               </div>
                             </div>
 
