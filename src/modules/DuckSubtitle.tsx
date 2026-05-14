@@ -8,6 +8,7 @@ import { demoSrt } from "./DuckSubtitle/utils";
 export function DuckSubtitle() {
   const [config, setConfig] = useState<DuckSubtitleConfig>({
     srtText: demoSrt,
+    subtitles: [], // 初始为空,由 SRT 解析填充
     audioSrc: null,
     audioDuration: 0,
     centerRegion: {

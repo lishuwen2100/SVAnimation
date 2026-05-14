@@ -18,6 +18,7 @@ export const duckSubtitleModule: ModuleDefinition = {
 
   getDefaultConfig: (): DuckSubtitleConfig => ({
     srtText: demoSrt,
+    subtitles: [], // 初始为空,可通过 SRT 导入或手动添加
     audioSrc: null,
     audioDuration: 0,
     centerRegion: {
@@ -39,20 +40,53 @@ export const duckSubtitleModule: ModuleDefinition = {
   }),
 
   getDuration: (config: DuckSubtitleConfig, fps: number): number => {
-    const cues = parseSrt(config.srtText);
-    const subtitleFrames = cues.length > 0 ? cues[cues.length - 1].endFrame + fps * 2 : fps * 8;
+    let subtitleFrames = fps * 8;
+
+    // 优先使用字幕列表计算时长
+    if (config.subtitles.length > 0) {
+      const lastSubtitle = config.subtitles.reduce((max, sub) =>
+        sub.endTime > max.endTime ? sub : max
+      );
+      subtitleFrames = Math.ceil(lastSubtitle.endTime * fps) + fps * 2;
+    } else if (config.srtText) {
+      // 向后兼容:从 SRT 文本解析
+      const cues = parseSrt(config.srtText);
+      subtitleFrames = cues.length > 0 ? cues[cues.length - 1].endFrame + fps * 2 : fps * 8;
+    }
+
     const audioFrames = config.audioDuration > 0 ? Math.ceil(config.audioDuration * fps) : 0;
     return Math.max(subtitleFrames, audioFrames, fps * 8);
   },
 
   convertConfigToProps: (config: DuckSubtitleConfig) => {
-    const cues = parseSrt(config.srtText).map((cue) => ({
-      ...cue,
-      fontFamily: config.subtitleStyles[cue.id]?.fontFamily,
-      fontSize: config.subtitleStyles[cue.id]?.fontSize,
-      animation: config.subtitleStyles[cue.id]?.animation,
-      customPosition: config.subtitleStyles[cue.id]?.customPosition,
-    }));
+    let cues;
+
+    // 优先使用字幕列表
+    if (config.subtitles.length > 0) {
+      cues = config.subtitles
+        .sort((a, b) => a.startTime - b.startTime)
+        .map((subtitle, index) => ({
+          id: index,
+          startSec: subtitle.startTime,
+          endSec: subtitle.endTime,
+          startFrame: Math.floor(subtitle.startTime * FPS),
+          endFrame: Math.floor(subtitle.endTime * FPS),
+          text: subtitle.text,
+          fontFamily: subtitle.fontFamily,
+          fontSize: subtitle.fontSize,
+          animation: subtitle.animation,
+          customPosition: subtitle.customPosition,
+        }));
+    } else {
+      // 向后兼容:从 SRT 文本解析
+      cues = parseSrt(config.srtText).map((cue) => ({
+        ...cue,
+        fontFamily: config.subtitleStyles[cue.id]?.fontFamily,
+        fontSize: config.subtitleStyles[cue.id]?.fontSize,
+        animation: config.subtitleStyles[cue.id]?.animation,
+        customPosition: config.subtitleStyles[cue.id]?.customPosition,
+      }));
+    }
 
     return {
       cues,

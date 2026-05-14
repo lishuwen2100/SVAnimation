@@ -30,26 +30,48 @@ export const DuckSubtitleConfigEditor: React.FC<DuckSubtitleConfigEditorProps> =
   // 本地 UI 状态（不需要持久化）
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const dragStartRef = useRef<{ x: number; y: number } | null>(null);
+  const playerRef = useRef<any>(null);
   const [draftRect, setDraftRect] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
   const [isDrawMode, setIsDrawMode] = useState(false);
   const [selectedCueIds, setSelectedCueIds] = useState<Set<number>>(new Set());
   const [expandedCueId, setExpandedCueId] = useState<number | null>(null);
   const [isSelectingPosition, setIsSelectingPosition] = useState(false);
   const [selectingCueId, setSelectingCueId] = useState<number | null>(null);
+  const [subtitlesExpanded, setSubtitlesExpanded] = useState(false);
+  const [expandedSubtitleId, setExpandedSubtitleId] = useState<string | null>(null);
 
   const selectedResolution =
     resolutionOptions.find((option) => option.id === config.resolution.id) ?? config.resolution;
 
   const cues = useMemo(() => {
-    const parsedCues = parseSrt(config.srtText);
-    return parsedCues.map((cue) => ({
-      ...cue,
-      fontFamily: config.subtitleStyles[cue.id]?.fontFamily,
-      fontSize: config.subtitleStyles[cue.id]?.fontSize,
-      animation: config.subtitleStyles[cue.id]?.animation,
-      customPosition: config.subtitleStyles[cue.id]?.customPosition,
-    }));
-  }, [config.srtText, config.subtitleStyles]);
+    // 优先使用字幕列表,如果为空则解析 SRT
+    if (config.subtitles.length > 0) {
+      return config.subtitles
+        .sort((a, b) => a.startTime - b.startTime)
+        .map((subtitle, index) => ({
+          id: index,
+          startSec: subtitle.startTime,
+          endSec: subtitle.endTime,
+          startFrame: Math.floor(subtitle.startTime * FPS),
+          endFrame: Math.floor(subtitle.endTime * FPS),
+          text: subtitle.text,
+          fontFamily: subtitle.fontFamily,
+          fontSize: subtitle.fontSize,
+          animation: subtitle.animation,
+          customPosition: subtitle.customPosition,
+        }));
+    } else {
+      // 向后兼容:从 SRT 文本解析
+      const parsedCues = parseSrt(config.srtText);
+      return parsedCues.map((cue) => ({
+        ...cue,
+        fontFamily: config.subtitleStyles[cue.id]?.fontFamily,
+        fontSize: config.subtitleStyles[cue.id]?.fontSize,
+        animation: config.subtitleStyles[cue.id]?.animation,
+        customPosition: config.subtitleStyles[cue.id]?.customPosition,
+      }));
+    }
+  }, [config.subtitles, config.srtText, config.subtitleStyles]);
 
   const durationInFrames = useMemo(() => {
     const subtitleFrames = cues.length > 0 ? cues[cues.length - 1].endFrame + FPS * 2 : FPS * 8;
@@ -57,10 +79,78 @@ export const DuckSubtitleConfigEditor: React.FC<DuckSubtitleConfigEditorProps> =
     return Math.max(subtitleFrames, audioFrames, FPS * 8);
   }, [config.audioDuration, cues]);
 
+  // 获取当前播放时间
+  const getCurrentTime = (): number => {
+    if (playerRef.current) {
+      const frame = playerRef.current.getCurrentFrame();
+      return frame / FPS;
+    }
+    return 0;
+  };
+
   const handleSrtUpload = async (file: File | null) => {
     if (!file) return;
     const text = await file.text();
-    onChange({ ...config, srtText: text });
+
+    // 解析 SRT 并转换为字幕列表
+    const parsedCues = parseSrt(text);
+    const newSubtitles = parsedCues.map((cue, index) => ({
+      id: `subtitle-${Date.now()}-${index}`,
+      text: cue.text,
+      startTime: cue.startSec,
+      endTime: cue.endSec,
+      fontFamily: config.subtitleStyles[cue.id]?.fontFamily,
+      fontSize: config.subtitleStyles[cue.id]?.fontSize,
+      animation: config.subtitleStyles[cue.id]?.animation,
+      customPosition: config.subtitleStyles[cue.id]?.customPosition,
+    }));
+
+    onChange({
+      ...config,
+      srtText: text,
+      subtitles: newSubtitles,
+    });
+  };
+
+  // 添加字幕
+  const handleAddSubtitle = () => {
+    const currentTime = getCurrentTime();
+    const newSubtitle = {
+      id: `subtitle-${Date.now()}`,
+      text: "新字幕",
+      startTime: currentTime,
+      endTime: currentTime + 1.5,
+    };
+
+    onChange({
+      ...config,
+      subtitles: [...config.subtitles, newSubtitle],
+    });
+
+    // 展开字幕面板和新字幕
+    setSubtitlesExpanded(true);
+    setExpandedSubtitleId(newSubtitle.id);
+  };
+
+  // 更新字幕
+  const handleUpdateSubtitle = (id: string, updates: Partial<typeof config.subtitles[0]>) => {
+    onChange({
+      ...config,
+      subtitles: config.subtitles.map((sub) =>
+        sub.id === id ? { ...sub, ...updates } : sub
+      ),
+    });
+  };
+
+  // 删除字幕
+  const handleDeleteSubtitle = (id: string) => {
+    onChange({
+      ...config,
+      subtitles: config.subtitles.filter((sub) => sub.id !== id),
+    });
+    if (expandedSubtitleId === id) {
+      setExpandedSubtitleId(null);
+    }
   };
 
   const handleAudioUpload = (file: File | null) => {
@@ -288,7 +378,8 @@ export const DuckSubtitleConfigEditor: React.FC<DuckSubtitleConfigEditorProps> =
               )}
 
               <Player
-                key={`${config.srtText.length}-${durationInFrames}-${config.audioSrc ?? "no-audio"}-${
+                ref={playerRef}
+                key={`${config.subtitles.length}-${config.srtText.length}-${durationInFrames}-${config.audioSrc ?? "no-audio"}-${
                   config.resolution.id
                 }-${config.centerRegion.x}-${config.centerRegion.y}-${config.centerRegion.width}-${
                   config.centerRegion.height
@@ -548,6 +639,209 @@ export const DuckSubtitleConfigEditor: React.FC<DuckSubtitleConfigEditorProps> =
               )}
             </div>
           </details>
+
+          {/* 字幕列表管理 */}
+          <section className="rounded-xl border border-neutral-800 bg-neutral-900/50 backdrop-blur-sm overflow-hidden">
+            <button
+              onClick={() => setSubtitlesExpanded(!subtitlesExpanded)}
+              className="w-full p-4 text-left flex items-center justify-between hover:bg-neutral-800/30 transition-colors"
+            >
+              <div>
+                <h2 className="text-sm font-semibold text-neutral-100">字幕列表</h2>
+                <p className="text-xs text-neutral-500 mt-1">
+                  共 {config.subtitles.length} 条字幕
+                </p>
+              </div>
+              <svg
+                className={`h-5 w-5 text-neutral-400 transition-transform ${subtitlesExpanded ? "rotate-180" : ""}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {subtitlesExpanded && (
+              <div className="px-4 pb-4 space-y-3 border-t border-neutral-800 pt-4">
+                {/* 添加字幕按钮 */}
+                <button
+                  onClick={handleAddSubtitle}
+                  className="w-full rounded-lg border border-dashed border-neutral-600 bg-neutral-800/30 px-3 py-2.5 text-sm font-semibold text-neutral-400 transition-all hover:border-neutral-500 hover:bg-neutral-800/50 hover:text-neutral-300"
+                >
+                  + 添加字幕
+                </button>
+
+                {/* 字幕列表 */}
+                {config.subtitles.length === 0 ? (
+                  <div className="text-center py-6 text-xs text-neutral-500">
+                    暂无字幕，点击上方按钮添加或导入 SRT 文件
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {config.subtitles.map((subtitle, index) => (
+                      <div
+                        key={subtitle.id}
+                        className="rounded-lg border border-neutral-700 bg-neutral-800/50 overflow-hidden"
+                      >
+                        {/* 字幕标题栏 */}
+                        <button
+                          onClick={() =>
+                            setExpandedSubtitleId(
+                              expandedSubtitleId === subtitle.id ? null : subtitle.id
+                            )
+                          }
+                          className="w-full p-2.5 text-left flex items-center justify-between hover:bg-neutral-700/30 transition-colors"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="text-xs font-medium text-neutral-200 truncate">
+                              #{index + 1}: {subtitle.text}
+                            </div>
+                            <div className="text-[10px] text-neutral-500 mt-0.5">
+                              {subtitle.startTime.toFixed(2)}s - {subtitle.endTime.toFixed(2)}s
+                            </div>
+                          </div>
+                          <svg
+                            className={`h-4 w-4 text-neutral-400 transition-transform ml-2 flex-shrink-0 ${
+                              expandedSubtitleId === subtitle.id ? "rotate-180" : ""
+                            }`}
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+
+                        {/* 字幕编辑面板 */}
+                        {expandedSubtitleId === subtitle.id && (
+                          <div className="space-y-3 border-t border-neutral-700 p-3">
+                            {/* 文本 */}
+                            <div>
+                              <label className="mb-1 block text-xs font-medium text-neutral-400">文本</label>
+                              <textarea
+                                value={subtitle.text}
+                                onChange={(e) => handleUpdateSubtitle(subtitle.id, { text: e.target.value })}
+                                className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-xs text-neutral-100 resize-none"
+                                rows={2}
+                              />
+                            </div>
+
+                            {/* 开始时间 */}
+                            <div>
+                              <label className="mb-1 block text-xs font-medium text-neutral-400">
+                                开始时间
+                                <button
+                                  onClick={() => handleUpdateSubtitle(subtitle.id, { startTime: getCurrentTime() })}
+                                  className="ml-2 text-[10px] text-cyan-400 hover:text-cyan-300"
+                                >
+                                  [使用当前时间]
+                                </button>
+                              </label>
+                              <input
+                                type="number"
+                                step="0.1"
+                                value={subtitle.startTime}
+                                onChange={(e) => handleUpdateSubtitle(subtitle.id, { startTime: Number(e.target.value) })}
+                                className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-xs text-neutral-100"
+                              />
+                            </div>
+
+                            {/* 结束时间 */}
+                            <div>
+                              <label className="mb-1 block text-xs font-medium text-neutral-400">
+                                结束时间
+                                <button
+                                  onClick={() => handleUpdateSubtitle(subtitle.id, { endTime: getCurrentTime() })}
+                                  className="ml-2 text-[10px] text-cyan-400 hover:text-cyan-300"
+                                >
+                                  [使用当前时间]
+                                </button>
+                              </label>
+                              <input
+                                type="number"
+                                step="0.1"
+                                value={subtitle.endTime}
+                                onChange={(e) => handleUpdateSubtitle(subtitle.id, { endTime: Number(e.target.value) })}
+                                className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-xs text-neutral-100"
+                              />
+                            </div>
+
+                            {/* 字体 */}
+                            <div>
+                              <label className="mb-1 block text-xs font-medium text-neutral-400">字体</label>
+                              <select
+                                value={subtitle.fontFamily || "default"}
+                                onChange={(e) =>
+                                  handleUpdateSubtitle(subtitle.id, {
+                                    fontFamily:
+                                      e.target.value === "default"
+                                        ? undefined
+                                        : fontFamilyOptions.find((f) => f.id === e.target.value)?.value,
+                                  })
+                                }
+                                className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-xs text-neutral-100"
+                              >
+                                {fontFamilyOptions.map((font) => (
+                                  <option key={font.id} value={font.id}>
+                                    {font.label}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+
+                            {/* 字号 */}
+                            <div>
+                              <label className="mb-1 block text-xs font-medium text-neutral-400">
+                                字号 <span className="text-yellow-400">{subtitle.fontSize || 72}px</span>
+                              </label>
+                              <input
+                                type="range"
+                                min="36"
+                                max="120"
+                                step="2"
+                                value={subtitle.fontSize || 72}
+                                onChange={(e) => handleUpdateSubtitle(subtitle.id, { fontSize: Number(e.target.value) })}
+                                className="w-full accent-yellow-500"
+                              />
+                            </div>
+
+                            {/* 入场动画 */}
+                            <div>
+                              <label className="mb-1 block text-xs font-medium text-neutral-400">入场动画</label>
+                              <select
+                                value={subtitle.animation || "default"}
+                                onChange={(e) =>
+                                  handleUpdateSubtitle(subtitle.id, {
+                                    animation: e.target.value === "default" ? undefined : e.target.value,
+                                  })
+                                }
+                                className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-xs text-neutral-100"
+                              >
+                                <option value="default">随机</option>
+                                {enterAnimationOptions.map((anim) => (
+                                  <option key={anim.id} value={anim.id}>
+                                    {anim.label}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+
+                            {/* 删除按钮 */}
+                            <button
+                              onClick={() => handleDeleteSubtitle(subtitle.id)}
+                              className="w-full rounded-md bg-red-900/30 px-3 py-2 text-xs text-red-400 transition-colors hover:bg-red-900/50"
+                            >
+                              删除字幕
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </section>
 
           {/* 字幕样式设置 */}
           <details className="group overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900/50 backdrop-blur-sm">

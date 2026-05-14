@@ -87,10 +87,25 @@ export interface ModuleDefinition {
 }
 
 /**
+ * DuckSubtitle 字幕项
+ */
+export interface DuckSubtitleItem {
+  id: string;          // 唯一标识
+  text: string;        // 字幕文本
+  startTime: number;   // 开始时间（秒）
+  endTime: number;     // 结束时间（秒）
+  fontFamily?: string;
+  fontSize?: number;
+  animation?: string;
+  customPosition?: { x: number; y: number };
+}
+
+/**
  * DuckSubtitle 模块配置
  */
 export interface DuckSubtitleConfig {
-  srtText: string;
+  srtText: string; // 保留用于向后兼容和 SRT 导入
+  subtitles: DuckSubtitleItem[]; // 字幕列表（新增）
   audioSrc: string | null;
   audioDuration: number;
   centerRegion: {
