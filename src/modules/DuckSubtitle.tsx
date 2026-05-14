@@ -3,12 +3,21 @@
 import { useState } from "react";
 import { DuckSubtitleConfigEditor } from "./DuckSubtitle/DuckSubtitleConfigEditor";
 import type { DuckSubtitleConfig } from "@/types/workflow";
-import { demoSrt } from "./DuckSubtitle/utils";
+import { demoSrt, parseSrt } from "./DuckSubtitle/utils";
 
 export function DuckSubtitle() {
+  // 将 demo SRT 转换为字幕列表
+  const parsedCues = parseSrt(demoSrt);
+  const demoSubtitles = parsedCues.map((cue, index) => ({
+    id: `demo-subtitle-${index}`,
+    text: cue.text,
+    startTime: cue.startSec,
+    endTime: cue.endSec,
+  }));
+
   const [config, setConfig] = useState<DuckSubtitleConfig>({
     srtText: demoSrt,
-    subtitles: [], // 初始为空,由 SRT 解析填充
+    subtitles: demoSubtitles, // 预填充演示字幕
     audioSrc: null,
     audioDuration: 0,
     centerRegion: {

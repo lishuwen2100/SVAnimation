@@ -16,28 +16,39 @@ export const duckSubtitleModule: ModuleDefinition = {
   CompositionComponent: DuckSubtitleComposition,
   ConfigEditorComponent: DuckSubtitleConfigEditor,
 
-  getDefaultConfig: (): DuckSubtitleConfig => ({
-    srtText: demoSrt,
-    subtitles: [], // 初始为空,可通过 SRT 导入或手动添加
-    audioSrc: null,
-    audioDuration: 0,
-    centerRegion: {
-      x: 0.28,
-      y: 0.28,
-      width: 0.44,
-      height: 0.42,
-      show: true,
-      manualPosition: null,
-    },
-    resolution: {
-      id: "720p",
-      width: 1280,
-      height: 720,
-      label: "1280 x 720 (HD)",
-    },
-    subtitleStyles: {},
-    positionMode: "random",
-  }),
+  getDefaultConfig: (): DuckSubtitleConfig => {
+    // 将 demo SRT 转换为字幕列表
+    const parsedCues = parseSrt(demoSrt);
+    const demoSubtitles = parsedCues.map((cue, index) => ({
+      id: `demo-subtitle-${index}`,
+      text: cue.text,
+      startTime: cue.startSec,
+      endTime: cue.endSec,
+    }));
+
+    return {
+      srtText: demoSrt, // 保留用于向后兼容
+      subtitles: demoSubtitles, // 预填充演示字幕
+      audioSrc: null,
+      audioDuration: 0,
+      centerRegion: {
+        x: 0.28,
+        y: 0.28,
+        width: 0.44,
+        height: 0.42,
+        show: true,
+        manualPosition: null,
+      },
+      resolution: {
+        id: "720p",
+        width: 1280,
+        height: 720,
+        label: "1280 x 720 (HD)",
+      },
+      subtitleStyles: {},
+      positionMode: "random",
+    };
+  },
 
   getDuration: (config: DuckSubtitleConfig, fps: number): number => {
     let subtitleFrames = fps * 8;
